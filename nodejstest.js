@@ -1,20 +1,16 @@
 const demofile = require('demofile');
 const fs = require('fs');
 
-console.log("Parsing for fun");
-
-fs.readFile('replays/liquid-vs-astralis-m3-cache.dem', function (err, buffer) {
+fs.readFile(process.argv[2], function (err, buffer) {
   let demoFile = new demofile.DemoFile();
 
   let roundstart = false;
   demoFile.gameEvents.on('round_start', e => {
-    console.log("A round has been started at %d", demoFile.currentTime);
     roundstart = true;
     roundStartTime = demoFile.currentTime;
   });
 
   demoFile.on('tickend', e => {
-  	// console.log("=============================");
   	if (roundstart) {
   		let roundTime = demoFile.currentTime - roundStartTime;
   		if (roundTime > 7 + 15) roundstart = false;
