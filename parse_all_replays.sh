@@ -5,12 +5,25 @@ if [ -z $1 ]; then
 	exit
 fi
 
+pcnt=0
+
 for f in replays/*$1*.dem; do
+
+	if [ $pcnt -gt 3 ]; then
+    	wait
+    	pcnt=0
+	fi
+
 	csvfile=csv/$(basename "${f%.*}").csv
 	if [ ! -f $csvfile ]; then
-		echo "Parsing $f to $csvfile"
-		# node parsePlayerPositions.js $f > $csvfile
+		echo "[$pcnt] Parsing $f to $csvfile"
+		node parsePlayerPositions.js $f > $csvfile &
+		pcnt=$((pcnt + 1))
 	else
 		echo "$csvfile already exists"
 	fi
 done
+
+wait
+
+echo "All parsing done"
