@@ -24,6 +24,8 @@ WallBangPos = collections.namedtuple('WallBangPos', 'x y ang')
 
 FrameRange = collections.namedtuple('FrameRange', 'start stop')
 
+Coords = collections.namedtuple('Coords', 'ct_x ct_y t_x t_y')
+
 parser = argparse.ArgumentParser(description='Plot player positions')
 parser.add_argument("--map", required=True)
 parser.add_argument("--input", required=True)
@@ -41,10 +43,7 @@ frame_range = FrameRange(args.start * 128, args.stop * 128)
 print("Parsing {} for {}".format(mapname, csv_file))
 
 # Global variables
-ct_xcoords = []
-ct_ycoords = []
-t_xcoords = []
-t_ycoords = []
+player_coords = Coords([], [], [], [])
 
 imagecount = 0
 ref_tick = 0
@@ -132,16 +131,14 @@ for row in lines:
         continue
 
     if (ref_tick != tick):
-        if len(ct_xcoords) > 0:
-
+        if len(player_coords.ct_x) > 0:
             title = "Positions at 1:" + str(tickToRoundTime(tick) - 60)
             plt.title(title)
             im = plt.imread("radar_images/" + radar_data.image)
             plt.imshow(im, extent=radar_data.extent)
-            plt.scatter(ct_xcoords, ct_ycoords,
+            plt.scatter(player_coords.ct_x,
+                        player_coords.ct_y,
                         marker='.', color="yellow", alpha=0.5)
-            # plt.scatter(t_xcoords, t_ycoords,
-            #            marker='.', color="red", alpha=0.5)
 
             # Draw full map instead of zoomed in
             if not args.full:
@@ -165,14 +162,14 @@ for row in lines:
                         dpi=300)
             plt.gcf().clear()
             imagecount += 1
-        ct_xcoords.clear()
-        ct_ycoords.clear()
-        t_xcoords.clear()
-        t_ycoords.clear()
+        player_coords.t_x.clear()
+        player_coords.t_y.clear()
+        player_coords.ct_x.clear()
+        player_coords.ct_y.clear()
         ref_tick = tick
     if team == "t":
-        t_xcoords.append(float(x))
-        t_ycoords.append(float(y))
+        player_coords.t_x.append(float(x))
+        player_coords.t_y.append(float(y))
     else:
-        ct_xcoords.append(float(x))
-        ct_ycoords.append(float(y))
+        player_coords.ct_x.append(float(x))
+        player_coords.ct_y.append(float(y))
