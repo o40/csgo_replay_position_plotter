@@ -3,44 +3,58 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import sys
-import getopt
+import argparse
 import collections
 
+# TODOS:
 '''
-TODO: Implement x,y-position and ang to line instead of calculating
-      it manually
-TODO: Implement getopt for options:
-        * Area to plot (or full)
-        * Input file
-        * Map name
 TODO: Refactor "RadarData" since it now contains more than it should
 TODO: Coord lists should not be two separate lists.
 TODO: Figure out how to plot CTs in a different color
 TODO: Make sure that the timing is correct
 TODO: Optimization? It is quite slow, and unusable for large data sets
-
+TODO: Handle last frame?
 '''
 
+# Named tuples
 RadarData = collections.namedtuple('RadarData',
-                                   'image extent plotarea bangpos bang')
+                                   'image extent plotarea bangpos banglength')
 
-if len(sys.argv) != 3:
-    print("Usage: posplotter.py [mapname] [csv file name]")
-    exit()
+WallBangPos = collections.namedtuple('WallBangPos', 'x y ang')
 
-mapname = sys.argv[1]
-csv_file = sys.argv[2]
+FrameRange = collections.namedtuple('FrameRange', 'start stop')
 
+parser = argparse.ArgumentParser(description='Plot player positions')
+parser.add_argument("--map", required=True)
+parser.add_argument("--input", required=True)
+parser.add_argument("--show", action='store_true')
+parser.add_argument("--full", action='store_true')
+parser.add_argument("--start", default=4)
+parser.add_argument("--stop", default=10)
+args = parser.parse_args()
+
+mapname = args.map
+csv_file = args.input
+frame_range = FrameRange(args.start * 128, args.stop * 128)
+
+
+print("Parsing {} for {}".format(mapname, csv_file))
+
+# Global variables
 ct_xcoords = []
 ct_ycoords = []
 t_xcoords = []
 t_ycoords = []
 
 imagecount = 0
-frameskip = 64
-frame = 0
-frame_range = [4 * 128, 10 * 128]
 ref_tick = 0
+
+
+def get_line_end_point(x, y, deg, length):
+    rad = math.radians(deg)
+    xout = x + math.cos(rad) * length
+    yout = y + math.sin(rad) * length
+    return [xout, yout]
 
 
 def make_radar_extent(pos_x, pos_y, size):
@@ -62,7 +76,7 @@ def get_radar_data(mapname):
         return RadarData(mapname + "_radar.png",
                          make_radar_extent(-2000, 3250, 1024 * 5.5),
                          [-1000, 0, -500, 500],
-                         [3309, 69, -600, 69],
+                         WallBangPos(3309, 69, 180),
                          180)
     elif mapname == "de_overpass":
         # "pos_x"     "-4831" // upper left world coordinate
@@ -71,7 +85,7 @@ def get_radar_data(mapname):
         return RadarData(mapname + "_radar.png",
                          make_radar_extent(-4831, 1781, 1024 * 5.2),
                          [-2300, -1300, -500, 500],
-                         [-1071, -2080, -2121, 730],  # ~110.5 degr
+                         WallBangPos(-1071, -2080, 110.5),
                          180)
     elif mapname == "de_inferno":
         # "pos_x"     "-2087" // upper left world coordinate
@@ -80,7 +94,7 @@ def get_radar_data(mapname):
         return RadarData(mapname + "_radar.png",
                          make_radar_extent(-2087, 3870, 1024 * 4.9),
                          [-2300, -1300, -500, 500],
-                         [0, 0, 0, 0],
+                         None,
                          0)
     else:
         print(mapname, "not supported")
@@ -99,6 +113,7 @@ def tickToRoundTime(tick):
     return secondsLeftInRound
 
 
+# TODO: Only copy the frames to use before sort
 print("Reading and sorting lines")
 sys.stdout.flush()
 lines = sorted(open(csv_file).readlines(),
@@ -107,14 +122,13 @@ lines = sorted(open(csv_file).readlines(),
 for row in lines:
     tick, x, y, team = row.split(',')
 
-    print("Processing tick: " + str(tick) + " of " + str(frame_range[1]) + "\r",
-          end='')
+    print("Processing tick: ({}/{})\r".format(tick, frame_range.stop), end='')
 
-    if int(tick) > frame_range[1]:
+    if int(tick) > frame_range.stop:
         print("Processing done")
         exit()
 
-    if int(tick) < int(frame_range[0]):
+    if int(tick) < int(frame_range.start):
         continue
 
     if (ref_tick != tick):
@@ -128,13 +142,24 @@ for row in lines:
                         marker='.', color="yellow", alpha=0.5)
             # plt.scatter(t_xcoords, t_ycoords,
             #            marker='.', color="red", alpha=0.5)
-            plt.axis(radar_data.plotarea)
-            # plt.axis('off')
-            if radar_data.bang != 0:
-                x1, y1, x2, y2 = radar_data.bangpos
+
+            # Draw full map instead of zoomed in
+            if not args.full:
+                plt.axis(radar_data.plotarea)
+
+            if radar_data.bangpos is not None:
+                x1, y1, ang = radar_data.bangpos
+                # TODO: Configurable distance
+                x2, y2 = get_line_end_point(x1, y1, ang, 3000)
                 plt.plot([x1, x2], [y1, y2], 'k-', color='r')
                 plt.scatter(x1, y1, marker='o', color="red", alpha=1)
             plt.margins(0)
+
+            # Show and exit
+            if args.show:
+                plt.show()
+                exit()
+
             plt.savefig("plots/" + "plot_" + str(imagecount).zfill(5) + ".png",
                         bbox_inches="tight",
                         dpi=300)
@@ -151,15 +176,3 @@ for row in lines:
     else:
         ct_xcoords.append(float(x))
         ct_ycoords.append(float(y))
-
-'''
-TODO:
-Plot wallbanger position and line:
-# plt.scatter(wallbang_player_pos_x,
-              wallbang_player_pos_y, marker='o', color="red", alpha=1)
-# plt.plot([1000, wallbang_player_pos_x],
-           [wallbang_player_pos_y, wallbang_player_pos_y], color="red")
-
-Last frame is not handled
-
-'''
