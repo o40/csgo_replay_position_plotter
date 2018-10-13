@@ -9,7 +9,6 @@ import collections
 # TODOS:
 '''
 TODO: Refactor "RadarData" since it now contains more than it should
-TODO: Coord lists should not be two separate lists.
 TODO: Figure out how to plot CTs in a different color
 TODO: Make sure that the timing is correct
 TODO: Optimization? It is quite slow, and unusable for large data sets
@@ -26,6 +25,8 @@ FrameRange = collections.namedtuple('FrameRange', 'start stop')
 
 Coords = collections.namedtuple('Coords', 'ct_x ct_y t_x t_y')
 
+PositionData = collections.namedtuple('PositionData', 'tick x y team')
+
 parser = argparse.ArgumentParser(description='Plot player positions')
 parser.add_argument("--map", required=True)
 parser.add_argument("--input", required=True)
@@ -37,8 +38,7 @@ args = parser.parse_args()
 
 mapname = args.map
 csv_file = args.input
-frame_range = FrameRange(args.start * 128, args.stop * 128)
-
+frame_range = FrameRange(int(args.start) * 128, int(args.stop) * 128)
 
 print("Parsing {} for {}".format(mapname, csv_file))
 
@@ -75,8 +75,8 @@ def get_radar_data(mapname):
         return RadarData(mapname + "_radar.png",
                          make_radar_extent(-2000, 3250, 1024 * 5.5),
                          [-1000, 0, -500, 500],
-                         WallBangPos(3309, 69, 180),
-                         180)
+                         WallBangPos(3309, 69, 180.3),
+                         3900)
     elif mapname == "de_overpass":
         # "pos_x"     "-4831" // upper left world coordinate
         # "pos_y"     "1781"
@@ -85,14 +85,14 @@ def get_radar_data(mapname):
                          make_radar_extent(-4831, 1781, 1024 * 5.2),
                          [-2300, -1300, -500, 500],
                          WallBangPos(-1071, -2080, 110.5),
-                         180)
+                         3000)
     elif mapname == "de_inferno":
         # "pos_x"     "-2087" // upper left world coordinate
         # "pos_y"     "3870"
         # "scale"     "4.9"
         return RadarData(mapname + "_radar.png",
                          make_radar_extent(-2087, 3870, 1024 * 4.9),
-                         [-2300, -1300, -500, 500],
+                         [-200, 1300, 600, 2100],
                          None,
                          0)
     else:
@@ -113,22 +113,27 @@ def tickToRoundTime(tick):
 
 
 # TODO: Only copy the frames to use before sort
-print("Reading and sorting lines")
+print("Reading lines")
 sys.stdout.flush()
-lines = sorted(open(csv_file).readlines(),
-               key=lambda line: float(line.split(',')[0]))
+
+position_data = []
+
+with open(csv_file) as rawfile:
+    for row in rawfile:
+        tick, x, y, team = row.split(',')
+        if int(tick) >= frame_range.start and int(tick) < frame_range.stop:
+            position_data.append(PositionData(int(tick),
+                                              float(x),
+                                              float(y),
+                                              team))
+
+print("Sorting lines")
+lines = sorted(position_data, key=lambda x: x[0])
 
 for row in lines:
-    tick, x, y, team = row.split(',')
+    tick, x, y, team = row
 
     print("Processing tick: ({}/{})\r".format(tick, frame_range.stop), end='')
-
-    if int(tick) > frame_range.stop:
-        print("Processing done")
-        exit()
-
-    if int(tick) < int(frame_range.start):
-        continue
 
     if (ref_tick != tick):
         if len(player_coords.ct_x) > 0:
@@ -136,9 +141,14 @@ for row in lines:
             plt.title(title)
             im = plt.imread("radar_images/" + radar_data.image)
             plt.imshow(im, extent=radar_data.extent)
+
             plt.scatter(player_coords.ct_x,
                         player_coords.ct_y,
-                        marker='.', color="yellow", alpha=0.5)
+                        marker='.', color="blue", alpha=0.5)
+
+            plt.scatter(player_coords.t_x,
+                        player_coords.t_y,
+                        marker='.', color="orange", alpha=0.5)
 
             # Draw full map instead of zoomed in
             if not args.full:
@@ -146,8 +156,7 @@ for row in lines:
 
             if radar_data.bangpos is not None:
                 x1, y1, ang = radar_data.bangpos
-                # TODO: Configurable distance
-                x2, y2 = get_line_end_point(x1, y1, ang, 3000)
+                x2, y2 = get_line_end_point(x1, y1, ang, radar_data.banglength)
                 plt.plot([x1, x2], [y1, y2], 'k-', color='r')
                 plt.scatter(x1, y1, marker='o', color="red", alpha=1)
             plt.margins(0)
@@ -167,7 +176,8 @@ for row in lines:
         player_coords.ct_x.clear()
         player_coords.ct_y.clear()
         ref_tick = tick
-    if team == "t":
+
+    if 't' in team:
         player_coords.t_x.append(float(x))
         player_coords.t_y.append(float(y))
     else:

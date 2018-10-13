@@ -2,7 +2,7 @@ const demofile = require('demofile');
 const fs = require('fs');
 
 const roundIntervalStartTicks = 4 * 128
-const roundIntervalStopTicks = 12 * 128
+const roundIntervalStopTicks = 16 * 128
 
 const filename = process.argv[2];
 
@@ -12,6 +12,7 @@ const filename = process.argv[2];
 // TODO: Optionally continue on missing ticks
 // TODO: Investigate if parsing next round when ticks missing
 //       is feisable
+// TODO: Add interpolation?
 
 var roundStartTick = 0;
 var lastTick = 0;
@@ -34,7 +35,9 @@ fs.readFile(filename, function (err, buffer) {
   		}
   		if (roundTicks >= roundIntervalStartTicks) {
   			if (demoFile.currentTick - lastTick != 1) {
-  				throw "Missing ticks in demo: " + filename;
+  				console.error("Missing ticks in demo: %s", filename);
+          roundstart = false;
+          return;
   			}
   			let teams = demoFile.teams;
   			// Team 3 is CT
@@ -45,13 +48,13 @@ fs.readFile(filename, function (err, buffer) {
             console.log("%d,%f,%f,%s", roundTicks, pos.x, pos.y, "c");  
           }
 		    }
-        /*let ts = teams[2].members;
+        let ts = teams[2].members;
         for (let i = 0; i < ts.length; i++) {
           if(typeof ts[i] !== "undefined") {
             let pos = ts[i].position;
             console.log("%d,%f,%f,%s", roundTicks, pos.x, pos.y, "t");
           }
-        }*/
+        }
   		}
   	}
   	lastTick = demoFile.currentTick;
