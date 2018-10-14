@@ -17,26 +17,41 @@ const filename = process.argv[2];
 var roundStartTick = 0;
 var lastTick = 0;
 
+function has_decimals(n)
+{
+  return (n - Math.floor(n)) !== 0;
+}
+
 fs.readFile(filename, function (err, buffer) {
   let demoFile = new demofile.DemoFile();
 
   let roundstart = false;
-  demoFile.gameEvents.on('round_freeze_end', e => {
+  let freeze_end = false;
+
+  demoFile.gameEvents.on('round_start', e => {
     roundstart = true;
+  });
+
+  demoFile.gameEvents.on('round_freeze_end', e => {
+    if (roundstart) {
+      freeze_end = true;
+    }
     roundStartTick = demoFile.currentTick;
   });
 
   demoFile.on('tickend', e => {
-  	if (roundstart) {
+  	if (freeze_end) {
   		let roundTicks = demoFile.currentTick - roundStartTick;
   		if (roundTicks > roundIntervalStopTicks) {
   			roundstart = false;
+        freeze_end = false;
   			return;
   		}
   		if (roundTicks >= roundIntervalStartTicks) {
   			if (demoFile.currentTick - lastTick != 1) {
   				console.error("Missing ticks in demo: %s", filename);
           roundstart = false;
+          freeze_end = false;
           return;
   			}
   			let teams = demoFile.teams;
@@ -45,14 +60,18 @@ fs.readFile(filename, function (err, buffer) {
 		    for (let i = 0; i < cts.length; i++) {
           if(typeof cts[i] !== "undefined") {
             let pos = cts[i].position;
-            console.log("%d,%f,%f,%s", roundTicks, pos.x, pos.y, "c");  
+            if (has_decimals(pos.x)) {
+              console.log("%d,%f,%f,%s", roundTicks, pos.x, pos.y, "c");
+            }
           }
 		    }
         let ts = teams[2].members;
         for (let i = 0; i < ts.length; i++) {
           if(typeof ts[i] !== "undefined") {
             let pos = ts[i].position;
-            console.log("%d,%f,%f,%s", roundTicks, pos.x, pos.y, "t");
+            if (has_decimals(pos.x)) {
+              console.log("%d,%f,%f,%s", roundTicks, pos.x, pos.y, "t");
+            }
           }
         }
   		}

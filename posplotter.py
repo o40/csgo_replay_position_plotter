@@ -1,10 +1,14 @@
 import csv
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import math
 import sys
 import argparse
 import collections
+import datetime
+
+matplotlib.use('TkAgg')
 
 # TODOS:
 '''
@@ -14,6 +18,17 @@ TODO: Make sure that the timing is correct
 TODO: Optimization? It is quite slow, and unusable for large data sets
 TODO: Handle last frame?
 '''
+
+
+def debug_log(msg, verbosity_level):
+    if verbosity_level >= 1:
+        print(msg)
+
+
+def debug_verbose(msg, verbosity_level):
+    if verbosity_level >= 2:
+        print(msg)
+
 
 # Named tuples
 RadarData = collections.namedtuple('RadarData',
@@ -30,23 +45,31 @@ PositionData = collections.namedtuple('PositionData', 'tick x y team')
 parser = argparse.ArgumentParser(description='Plot player positions')
 parser.add_argument("--map", required=True)
 parser.add_argument("--input", required=True)
+parser.add_argument("--outputdir", default="plots")
 parser.add_argument("--show", action='store_true')
 parser.add_argument("--full", action='store_true')
 parser.add_argument("--start", default=4)
 parser.add_argument("--stop", default=10)
+parser.add_argument("--verbosity", default=1)
 args = parser.parse_args()
 
 mapname = args.map
 csv_file = args.input
 frame_range = FrameRange(int(args.start) * 128, int(args.stop) * 128)
 
-print("Parsing {} for {}".format(mapname, csv_file))
+debug_log("Parsing {} for {}".format(mapname, csv_file), args.verbosity)
 
 # Global variables
 player_coords = Coords([], [], [], [])
 
-imagecount = 0
+g_imagecount = 0
 ref_tick = 0
+
+date = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
+
+scatter_plot_size = 10
+if args.full:
+    scatter_plot_size = 4
 
 
 def get_line_end_point(x, y, deg, length):
@@ -75,7 +98,7 @@ def get_radar_data(mapname):
         return RadarData(mapname + "_radar.png",
                          make_radar_extent(-2000, 3250, 1024 * 5.5),
                          [-1000, 0, -500, 500],
-                         WallBangPos(3309, 69, 180.3),
+                         WallBangPos(3309, 69, 180.6),
                          3900)
     elif mapname == "de_overpass":
         # "pos_x"     "-4831" // upper left world coordinate
@@ -100,9 +123,6 @@ def get_radar_data(mapname):
         exit()
 
 
-radar_data = get_radar_data(mapname)
-
-
 def tickToRoundTime(tick):
     # 1:55 round time
     # Tick includes 15 seconds buy time
@@ -112,8 +132,65 @@ def tickToRoundTime(tick):
     return secondsLeftInRound
 
 
-# TODO: Only copy the frames to use before sort
-print("Reading lines")
+def plot_players(x, y, size, team):
+    color = "orange"
+    if team == "ct":
+        color = "blue"
+    plt.scatter(x, y, s=size, color=color, alpha=0.8, marker='.')
+
+
+def plot_wallbang(pos, length):
+    if pos is not None:
+        x1, y1, ang = pos
+        x2, y2 = get_line_end_point(x1, y1, ang, length)
+        plt.plot([x1, x2], [y1, y2], 'k-', color='r')
+        plt.scatter(x1, y1, marker='o', color="red", alpha=1)
+
+
+def plot_set_properties(image, area, full, tick, extent):
+    # Draw full map instead of zoomed in
+    if not full:
+        plt.axis(area)
+    # No margins
+    plt.margins(0)
+    title = "Positions at 1:{} ({})".format(str(tickToRoundTime(tick) - 60), tick)
+    plt.title(title)
+    plt.imshow(image, extent=extent)
+
+
+def clear_coords(coords):
+    coords.t_x.clear()
+    coords.t_y.clear()
+    coords.ct_x.clear()
+    coords.ct_y.clear()
+
+
+def update_coords(coords, x, y, team):
+    if 't' in team:
+        coords.t_x.append(float(x))
+        coords.t_y.append(float(y))
+    else:
+        coords.ct_x.append(float(x))
+        coords.ct_y.append(float(y))
+
+
+def save_figure(date, folder):
+    global g_imagecount
+    filename = "{}/{}/{}.png".format(folder, date, str(g_imagecount).zfill(5))
+    print("Filename:", filename)
+    exit()
+
+    plt.savefig(filename, bbox_inches="tight", dpi=300)
+    g_imagecount += 1
+
+
+def clear_figure():
+    plt.gcf().clear()
+
+
+radar_data = get_radar_data(mapname)
+
+debug_verbose("Reading lines", args.verbosity)
 sys.stdout.flush()
 
 position_data = []
@@ -127,59 +204,45 @@ with open(csv_file) as rawfile:
                                               float(y),
                                               team))
 
-print("Sorting lines")
+debug_verbose("Sorting lines", args.verbosity)
 lines = sorted(position_data, key=lambda x: x[0])
+im = plt.imread("radar_images/" + radar_data.image)
 
 for row in lines:
     tick, x, y, team = row
 
-    print("Processing tick: ({}/{})\r".format(tick, frame_range.stop), end='')
+    debug_verbose("Processing tick: ({}/{})\r".format(tick, frame_range.stop),
+                   args.verbosity)
 
     if (ref_tick != tick):
         if len(player_coords.ct_x) > 0:
-            title = "Positions at 1:" + str(tickToRoundTime(tick) - 60)
-            plt.title(title)
-            im = plt.imread("radar_images/" + radar_data.image)
-            plt.imshow(im, extent=radar_data.extent)
+            plot_set_properties(im,
+                                radar_data.plotarea,
+                                args.full,
+                                tick,
+                                radar_data.extent)
 
-            plt.scatter(player_coords.ct_x,
-                        player_coords.ct_y,
-                        marker='.', color="blue", alpha=0.5)
+            # Plot player positions
+            plot_players(player_coords.ct_x,
+                         player_coords.ct_y,
+                         scatter_plot_size,
+                         "ct")
 
-            plt.scatter(player_coords.t_x,
-                        player_coords.t_y,
-                        marker='.', color="orange", alpha=0.5)
+            plot_players(player_coords.t_x,
+                         player_coords.t_y,
+                         scatter_plot_size,
+                         "t")
 
-            # Draw full map instead of zoomed in
-            if not args.full:
-                plt.axis(radar_data.plotarea)
-
-            if radar_data.bangpos is not None:
-                x1, y1, ang = radar_data.bangpos
-                x2, y2 = get_line_end_point(x1, y1, ang, radar_data.banglength)
-                plt.plot([x1, x2], [y1, y2], 'k-', color='r')
-                plt.scatter(x1, y1, marker='o', color="red", alpha=1)
-            plt.margins(0)
+            plot_wallbang(radar_data.bangpos, radar_data.banglength)
 
             # Show and exit
             if args.show:
                 plt.show()
                 exit()
 
-            plt.savefig("plots/" + "plot_" + str(imagecount).zfill(5) + ".png",
-                        bbox_inches="tight",
-                        dpi=300)
-            plt.gcf().clear()
-            imagecount += 1
-        player_coords.t_x.clear()
-        player_coords.t_y.clear()
-        player_coords.ct_x.clear()
-        player_coords.ct_y.clear()
-        ref_tick = tick
+            save_figure(date, args.outputdir)
+            clear_figure()
 
-    if 't' in team:
-        player_coords.t_x.append(float(x))
-        player_coords.t_y.append(float(y))
-    else:
-        player_coords.ct_x.append(float(x))
-        player_coords.ct_y.append(float(y))
+        clear_coords(player_coords)
+        ref_tick = tick
+    update_coords(player_coords, x, y, team)
