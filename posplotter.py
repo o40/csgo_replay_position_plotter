@@ -35,11 +35,6 @@ def debug_verbose(msg, verbosity_level):
 
 
 # Named tuples
-# RadarData = collections.namedtuple('RadarData',
-#                                    'image extent plotarea bangpos banglength')
-# 
-# WallBangPos = collections.namedtuple('WallBangPos', 'x y ang')
-
 FrameRange = collections.namedtuple('FrameRange', 'start stop')
 
 Coords = collections.namedtuple('Coords', 'ct_x ct_y t_x t_y')
@@ -52,51 +47,6 @@ def get_line_end_point(x, y, deg, length):
     xout = x + math.cos(rad) * length
     yout = y + math.sin(rad) * length
     return [xout, yout]
-
-#
-#def make_radar_extent(pos_x, pos_y, size):
-#    '''
-#    X, Y is the top left of the radar image (see radar config)
-#    size is the size of the radar. I have not figured out
-#    how to read the scale value in the radar config.
-#
-#    See: ..csgo/resource/overviews/de_cache.txt
-#    '''
-#    return [pos_x, pos_x + size, pos_y - size, pos_y]
-#
-#
-#def get_radar_data(mapname):
-#    if mapname == "de_cache":
-#        # "pos_x"     "-2000" // upper left world coordinate
-#        # "pos_y"     "3250"
-#        # "scale"     "5.5"
-#        return RadarData(mapname + "_radar.png",
-#                         make_radar_extent(-2000, 3250, 1024 * 5.5),
-#                         [-1000, 0, -500, 500],
-#                         # WallBangPos(3309, 69, 180.6), # 71, 179.6
-#                         WallBangPos(3309, 71, -179.6),
-#                         3900)
-#    elif mapname == "de_overpass":
-#        # "pos_x"     "-4831" // upper left world coordinate
-#        # "pos_y"     "1781"
-#        # "scale"     "5.2"
-#        return RadarData(mapname + "_radar.png",
-#                         make_radar_extent(-4831, 1781, 1024 * 5.2),
-#                         [-2300, -1300, -500, 500],
-#                         WallBangPos(-1071, -2080, 110.5),
-#                         2200)
-#    elif mapname == "de_inferno":
-#        # "pos_x"     "-2087" // upper left world coordinate
-#        # "pos_y"     "3870"
-#        # "scale"     "4.9"
-#        return RadarData(mapname + "_radar.png",
-#                         make_radar_extent(-2087, 3870, 1024 * 4.9),
-#                         [-200, 1300, 600, 2100],
-#                         None,
-#                         0)
-#    else:
-#        print(mapname, "not supported")
-#        exit()
 
 
 def tickToRoundTime(tick):
@@ -130,7 +80,8 @@ def plot_set_properties(image, area, full, tick, extent):
         plt.axis(area)
     # No margins
     plt.margins(0)
-    title = "Positions at 1:{} ({})".format(str(tickToRoundTime(tick) - 60), tick)
+    title = "Positions at 1:{} ({})".format(str(tickToRoundTime(tick) - 60),
+                                            tick)
     plt.title(title)
     plt.imshow(image, extent=extent)
 
@@ -190,26 +141,21 @@ def main():
     parser.add_argument("--verbosity", default=1, type=int)
     args = parser.parse_args()
 
-    mapname = args.map
-    csv_file = args.input
+    debug_log("Parsing {} for {}".format(args.map, args.input), args.verbosity)
 
-    debug_log("Parsing {} for {}".format(mapname, csv_file), args.verbosity)
-
-    # Global variables
-    player_coords = Coords([], [], [], [])
     date = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
 
     scatter_plot_size = 10
     if args.full:
         scatter_plot_size = 4
 
-    radar_data = get_radar_data(mapname)
+    radar_data = get_radar_data(args.map)
 
     debug_verbose("Reading lines", args.verbosity)
     sys.stdout.flush()
 
     frame_range = FrameRange(args.start * 128, args.stop * 128)
-    position_data = read_position_data_from_file(csv_file, frame_range)
+    position_data = read_position_data_from_file(args.input, frame_range)
 
     debug_verbose("Sorting lines", args.verbosity)
     lines = sorted(position_data, key=lambda x: x[0])
@@ -217,6 +163,7 @@ def main():
     im = plt.imread("radar_images/" + radar_data.image)
 
     ref_tick = 0
+    player_coords = Coords([], [], [], [])
     for row in lines:
         tick, x, y, team = row
 
