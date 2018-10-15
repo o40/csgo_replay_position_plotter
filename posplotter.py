@@ -166,6 +166,19 @@ def clear_figure():
     plt.gcf().clear()
 
 
+def read_position_data_from_file(csv_file, frame_range):
+    position_data = []
+    with open(csv_file) as rawfile:
+        for row in rawfile:
+            tick, x, y, team = row.split(',')
+            if int(tick) >= frame_range.start and int(tick) < frame_range.stop:
+                position_data.append(PositionData(int(tick),
+                                                  float(x),
+                                                  float(y),
+                                                  team))
+    return position_data
+
+
 def main():
     parser = argparse.ArgumentParser(description='Plot player positions')
     parser.add_argument("--map", required=True)
@@ -180,14 +193,11 @@ def main():
 
     mapname = args.map
     csv_file = args.input
-    frame_range = FrameRange(args.start * 128, args.stop * 128)
 
     debug_log("Parsing {} for {}".format(mapname, csv_file), args.verbosity)
 
     # Global variables
     player_coords = Coords([], [], [], [])
-    ref_tick = 0
-
     date = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
 
     scatter_plot_size = 10
@@ -199,26 +209,21 @@ def main():
     debug_verbose("Reading lines", args.verbosity)
     sys.stdout.flush()
 
-    position_data = []
-
-    with open(csv_file) as rawfile:
-        for row in rawfile:
-            tick, x, y, team = row.split(',')
-            if int(tick) >= frame_range.start and int(tick) < frame_range.stop:
-                position_data.append(PositionData(int(tick),
-                                                  float(x),
-                                                  float(y),
-                                                  team))
+    frame_range = FrameRange(args.start * 128, args.stop * 128)
+    position_data = read_position_data_from_file(csv_file, frame_range)
 
     debug_verbose("Sorting lines", args.verbosity)
     lines = sorted(position_data, key=lambda x: x[0])
+
     im = plt.imread("radar_images/" + radar_data.image)
 
+    ref_tick = 0
     for row in lines:
         tick, x, y, team = row
 
-        debug_verbose("Processing tick: ({}/{})\r".format(tick, frame_range.stop),
-                       args.verbosity)
+        debug_verbose("Processing tick: ({}/{})\r".format(tick,
+                                                          frame_range.stop),
+                      args.verbosity)
 
         if (ref_tick != tick):
             if len(player_coords.ct_x) > 0:
