@@ -46,6 +46,42 @@ def get_radar_data(mapname):
                          [-200, 1300, 600, 2100],
                          None,
                          0)
+    elif mapname == "de_dust2":
+        # "pos_x"     "-2476" // upper left world coordinate
+        # "pos_y"     "3239"
+        # "scale"     "4.4"
+        return RadarData(mapname + "_radar.png",
+                         make_radar_extent(-2476, 3239, 1024 * 4.4),
+                         [-200, 1300, 600, 2100],
+                         None,
+                         0)
+    elif mapname == "de_cbble":
+        # "pos_x"     "-3840" // upper left world coordinate
+        # "pos_y"     "3072"
+        # "scale"     "6"
+        return RadarData(mapname + "_radar.png",
+                         make_radar_extent(-3840, 3072, 1024 * 6),
+                         [-200, 1300, 600, 2100],
+                         None,
+                         0)
+    elif mapname == "de_mirage":
+        # "pos_x"     "-3230" // X coordinate,
+        # "pos_y"     "1713"  // Y coordinate,
+        # "scale"     "5.00"  // and used scale used when taking the screenshot
+        return RadarData(mapname + "_radar.png",
+                         make_radar_extent(-3230, 1713, 1024 * 5),
+                         [-200, 1300, 600, 2100],
+                         None,
+                         0)
+    elif mapname == "de_train":
+        # "pos_x"     "-2477" // upper left world coordinate
+        # "pos_y"     "2392"
+        # "scale"     "4.7"
+        return RadarData(mapname + "_radar.png",
+                         make_radar_extent(-2477, 2392, 1024 * 4.7),
+                         [-200, 1300, 600, 2100],
+                         None,
+                         0)
     else:
         print(mapname, "not supported")
         exit()
