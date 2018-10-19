@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ -z $1 ]; then
-	echo "Need to supply search mask (e.g cache)"
+	echo "Need to supply search mask (e.g cache, or vs for all)"
 	exit
 fi
 

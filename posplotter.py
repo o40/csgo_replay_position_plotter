@@ -29,9 +29,9 @@ def debug_log(msg, verbosity_level):
         print(msg)
 
 
-def debug_verbose(msg, verbosity_level):
+def debug_verbose(msg, verbosity_level, end="\n"):
     if verbosity_level >= 2:
-        print(msg)
+        print(msg, end=end)
 
 
 # Named tuples
@@ -167,11 +167,11 @@ def main():
     for row in lines:
         tick, x, y, team = row
 
-        debug_verbose("Processing tick: ({}/{})\r".format(tick,
-                                                          frame_range.stop),
-                      args.verbosity)
-
         if (ref_tick != tick):
+            debug_verbose("Processed tick: ({}/{})\r".format(tick,
+                                                             frame_range.stop),
+                          args.verbosity,
+                          '')
             if len(player_coords.ct_x) > 0:
                 plot_set_properties(im,
                                     radar_data.plotarea,
