@@ -9,7 +9,7 @@ pcnt=0
 
 for f in replays/*$1*.dem; do
 
-	if [ $pcnt -gt 3 ]; then
+	if [ $pcnt -gt 8 ]; then
     	wait
     	pcnt=0
 	fi
