@@ -8,6 +8,7 @@ import argparse
 import collections
 import datetime
 import os
+
 from radardata import *
 
 matplotlib.use('TkAgg')
@@ -139,6 +140,8 @@ def main():
     parser.add_argument("--start", default=4, type=int)
     parser.add_argument("--stop", default=10, type=int)
     parser.add_argument("--verbosity", default=1, type=int)
+    parser.add_argument("--wallbang", action='store_true')
+
     args = parser.parse_args()
 
     debug_log("Parsing {} for {}".format(args.map, args.input), args.verbosity)
@@ -172,6 +175,7 @@ def main():
                                                              frame_range.stop),
                           args.verbosity,
                           '')
+            sys.stdout.flush()
             if len(player_coords.ct_x) > 0:
                 plot_set_properties(im,
                                     radar_data.plotarea,
@@ -190,7 +194,8 @@ def main():
                              scatter_plot_size,
                              "t")
 
-                plot_wallbang(radar_data.bangpos, radar_data.banglength)
+                if args.wallbang:
+                    plot_wallbang(radar_data.bangpos, radar_data.banglength)
 
                 # Show and exit
                 if args.show:
