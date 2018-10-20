@@ -82,6 +82,15 @@ def get_radar_data(mapname):
                          [-200, 1300, 600, 2100],
                          None,
                          0)
+    elif mapname == "de_nuke":
+        # "pos_x"     "-3453" // upper left world coordinate
+        # "pos_y"     "2887"
+        # "scale"     "7"
+        return RadarData(mapname + "_radar.png",
+                         make_radar_extent(-3453, 2887, 1024 * 7),
+                         [-200, 1300, 600, 2100],
+                         None,
+                         0)
     else:
         print(mapname, "not supported")
         exit()
