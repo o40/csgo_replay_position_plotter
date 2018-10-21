@@ -36,7 +36,7 @@ def get_radar_data(mapname):
                          make_radar_extent(-4831, 1781, 1024 * 5.2),
                          [-2300, -1300, -500, 500],
                          WallBangPos(-1071, -2080, 110.5),
-                         2200)
+                         2500)
     elif mapname == "de_inferno":
         # "pos_x"     "-2087" // upper left world coordinate
         # "pos_y"     "3870"

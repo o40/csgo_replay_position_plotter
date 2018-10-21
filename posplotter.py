@@ -1,6 +1,6 @@
 import csv
-import matplotlib
-import matplotlib.pyplot as plt
+import matplotlib as mpl
+import matplotlib.pylab as plt
 import numpy as np
 import math
 import sys
@@ -11,7 +11,16 @@ import os
 
 from radardata import *
 
-matplotlib.use('TkAgg')
+'''
+mpl.rcParams['axes.labelsize'] = 10
+mpl.rcParams['xtick.labelsize'] = 10
+mpl.rcParams['ytick.labelsize'] = 10
+mpl.rcParams['legend.fontsize'] = 10
+mpl.rcParams['font.family'] = ['sans-serif']
+mpl.rcParams['font.sans-serif'] = ['Arial']
+mpl.rcParams['text.usetex'] = False
+mpl.rcParams['svg.fonttype'] = 'none'
+'''
 
 # TODOS:
 '''
@@ -21,8 +30,12 @@ TODO: Optimization? It is quite slow, and unusable for large data sets
 TODO: Handle last frame?
 '''
 
+mpl.rcParams["figure.figsize"] = [10.8, 10.8]
+mpl.rcParams["figure.dpi"] = 100
+
 # Globals
 g_imagecount = 0
+g_image_size = [1920, 1080]
 
 
 def debug_log(msg, verbosity_level):
@@ -59,32 +72,52 @@ def tickToRoundTime(tick):
     return secondsLeftInRound
 
 
-def plot_players(x, y, size, team):
+def plot_players(ax, x, y, size, team):
     color = "orange"
     if team == "ct":
         color = "blue"
-    plt.scatter(x, y, s=size, color=color, alpha=1, marker='.')
+    plt.scatter(x, y, s=size, color=color, alpha=1, marker='.', linewidths=0)
 
 
-def plot_wallbang(pos, length):
+def plot_wallbang(pos, size, length):
     if pos is not None:
         x1, y1, ang = pos
         x2, y2 = get_line_end_point(x1, y1, ang, length)
-        plt.plot([x1, x2], [y1, y2], 'k-', color='r')
-        plt.scatter(x1, y1, marker='o', color="red", alpha=1)
+        plt.plot([x1, x2], [y1, y2], 'k-', color='r', lw=0.3)
+        plt.scatter(x1, y1, s=size*5, marker='.', color="red", alpha=1, linewidths=0)
 
 
-def plot_set_properties(image, area, full, tick, extent):
+def plot_set_properties(fig, ax, image, area, full, tick, extent):
     # plt.style.use('Solarize_Light2')
     # Draw full map instead of zoomed in
     if not full:
         plt.axis(area)
+
     # No margins
     plt.margins(0)
-    title = "Positions at 1:{} ({})".format(str(tickToRoundTime(tick) - 60),
-                                            tick)
-    plt.title(title)
+    plt.axis("off")
+
     plt.imshow(image, extent=extent)
+
+
+def plot_text(ax, tick):
+    font = {'family': 'arial',
+            'color':  'yellow',
+            'weight': 'bold',
+            'size': 2}
+
+    title = "1:{} (Tick: {})".format(str(tickToRoundTime(tick) - 60), tick)
+
+    plt.text(0.02, 0.98, title,
+             fontdict=font,
+             transform=ax.transAxes,
+             ha='left',
+             va='top',
+             bbox=dict(alpha=1,
+                       boxstyle="round",
+                       ec='black',
+                       fc='black',
+                       lw=0.2))
 
 
 def clear_coords(coords):
@@ -103,13 +136,20 @@ def update_coords(coords, x, y, team):
         coords.ct_y.append(float(y))
 
 
-def save_figure(date, folder):
+def save_figure(date, folder, ax, fig):
     global g_imagecount
     directory = "{}/{}".format(folder, date)
     if not os.path.exists(directory):
         os.makedirs(directory)
     filename = "{}/{}/{}.png".format(folder, date, str(g_imagecount).zfill(5))
-    plt.savefig(filename, bbox_inches="tight", dpi=300)
+    extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    # print("Window Extent:", extent)
+    dpi = (1 / (extent.y1 - extent.y0)) * 1080
+    # print("dpi:", dpi)
+    fig.savefig(filename,
+                bbox_inches=extent,
+                dpi=dpi,
+                pad_inches=0)
     g_imagecount += 1
 
 
@@ -148,9 +188,9 @@ def main():
 
     date = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
 
-    scatter_plot_size = 10
+    scatter_plot_size = 1
     if args.full:
-        scatter_plot_size = 4
+        scatter_plot_size = 0.5
 
     radar_data = get_radar_data(args.map)
 
@@ -177,32 +217,47 @@ def main():
                           '')
             sys.stdout.flush()
             if len(player_coords.ct_x) > 0:
-                plot_set_properties(im,
+
+                fig, ax = plt.subplots(figsize=(1, 1), facecolor='c')
+
+                # ax.axis('off')
+                # ax.imshow(im, extent=radar_data.extent)
+
+                plot_set_properties(fig,
+                                    ax,
+                                    im,
                                     radar_data.plotarea,
                                     args.full,
                                     tick,
                                     radar_data.extent)
 
+                plot_text(ax, tick)
+
                 # Plot player positions
-                plot_players(player_coords.ct_x,
+                plot_players(ax,
+                             player_coords.ct_x,
                              player_coords.ct_y,
                              scatter_plot_size,
                              "ct")
 
-                plot_players(player_coords.t_x,
+                plot_players(ax,
+                             player_coords.t_x,
                              player_coords.t_y,
                              scatter_plot_size,
                              "t")
 
                 if args.wallbang:
-                    plot_wallbang(radar_data.bangpos, radar_data.banglength)
+                    plot_wallbang(radar_data.bangpos,
+                                  scatter_plot_size,
+                                  radar_data.banglength)
 
                 # Show and exit
                 if args.show:
                     plt.show()
                     exit()
 
-                save_figure(date, args.outputdir)
+                save_figure(date, args.outputdir, ax, fig)
+                plt.close(fig)
                 clear_figure()
 
             clear_coords(player_coords)
