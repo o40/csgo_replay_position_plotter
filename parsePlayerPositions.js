@@ -1,18 +1,14 @@
 const demofile = require('demofile');
 const fs = require('fs');
 
-const roundIntervalStartTicks = 4 * 128
-const roundIntervalStopTicks = 16 * 128
+const roundIntervalStartTicks = 1 * 128
+const roundIntervalStopTicks = 30 * 128
 
 const filename = process.argv[2];
 
-// TODO: Read start and stop seconds as arguments, 
+// TODO: Read start and stop seconds as arguments,
 //       and check that arguments are supplied
-// TODO: Optionally write T positions as well
 // TODO: Optionally continue on missing ticks
-// TODO: Investigate if parsing next round when ticks missing
-//       is feisable
-// TODO: Add interpolation?
 
 var roundStartTick = 0;
 var lastTick = 0;
@@ -22,58 +18,62 @@ function has_decimals(n)
   return (n - Math.floor(n)) !== 0;
 }
 
+// 2 is T, 3 is CT
+function print_positions(teams, round, tick, team_index)
+{
+  let team_id = "c"
+  if (team_index == 3) {
+    team_id = "ct"
+  }
+
+  let members = teams[team_index].members;
+  for (let i = 0; i < members.length; i++) {
+    if(typeof members[i] !== "undefined") {
+      let pos = members[i].position;
+      let userid = members[i].userId;
+      if (has_decimals(pos.x)) {
+        console.log("%d,%d,%f,%f,%d,%s",
+          tick, round, pos.x, pos.y, userid, team_id);
+      }
+    }
+  }
+}
+
 fs.readFile(filename, function (err, buffer) {
   let demoFile = new demofile.DemoFile();
 
-  let roundstart = false;
-  let freeze_end = false;
-
-  demoFile.gameEvents.on('round_start', e => {
-    roundstart = true;
-  });
+  var round_active = false;
 
   demoFile.gameEvents.on('round_freeze_end', e => {
-    if (roundstart) {
-      freeze_end = true;
-    }
+    round_active = true;
     roundStartTick = demoFile.currentTick;
   });
 
+  demoFile.gameEvents.on('round_end', e => {
+    round_active = false;
+  });
+
   demoFile.on('tickend', e => {
-  	if (freeze_end) {
+  	if (round_active) {
+
   		let roundTicks = demoFile.currentTick - roundStartTick;
-  		if (roundTicks > roundIntervalStopTicks) {
-  			roundstart = false;
-        freeze_end = false;
+
+      if (roundTicks > roundIntervalStopTicks) {
+  			round_active = false;
   			return;
   		}
+
   		if (roundTicks >= roundIntervalStartTicks) {
   			if (demoFile.currentTick - lastTick != 1) {
   				console.error("Missing ticks in demo: %s", filename);
-          roundstart = false;
-          freeze_end = false;
-          return;
+          // Optional return here?
+          // return
   			}
+
   			let teams = demoFile.teams;
-  			// Team 3 is CT
-		  	let cts = teams[3].members;
-		    for (let i = 0; i < cts.length; i++) {
-          if(typeof cts[i] !== "undefined") {
-            let pos = cts[i].position;
-            if (has_decimals(pos.x)) {
-              console.log("%d,%f,%f,%s", roundTicks, pos.x, pos.y, "c");
-            }
-          }
-		    }
-        let ts = teams[2].members;
-        for (let i = 0; i < ts.length; i++) {
-          if(typeof ts[i] !== "undefined") {
-            let pos = ts[i].position;
-            if (has_decimals(pos.x)) {
-              console.log("%d,%f,%f,%s", roundTicks, pos.x, pos.y, "t");
-            }
-          }
-        }
+        let round = demoFile.gameRules.roundsPlayed;
+        print_positions(teams, round, roundTicks, 3);
+        print_positions(teams, round, roundTicks, 2);
   		}
   	}
   	lastTick = demoFile.currentTick;
