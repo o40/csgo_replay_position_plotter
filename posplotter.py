@@ -8,6 +8,7 @@ import argparse
 import collections
 import datetime
 import os
+from timeit import default_timer as timer
 
 from radardata import *
 
@@ -76,7 +77,13 @@ def plot_players(ax, x, y, size, team):
     color = "orange"
     if team == "ct":
         color = "blue"
-    plt.scatter(x, y, s=size, color=color, alpha=1, marker='.', linewidths=0)
+    plt.scatter(x,
+                y,
+                s=size,
+                color=color,
+                alpha=1,
+                marker='.',
+                linewidths=0)
 
 
 def plot_wallbang(pos, size, length):
@@ -84,7 +91,13 @@ def plot_wallbang(pos, size, length):
         x1, y1, ang = pos
         x2, y2 = get_line_end_point(x1, y1, ang, length)
         plt.plot([x1, x2], [y1, y2], 'k-', color='r', lw=0.3)
-        plt.scatter(x1, y1, s=size*5, marker='.', color="red", alpha=1, linewidths=0)
+        plt.scatter(x1,
+                    y1,
+                    s=size*5,
+                    marker='.',
+                    color="red",
+                    alpha=1,
+                    linewidths=0)
 
 
 def plot_set_properties(fig, ax, image, area, full, tick, extent):
@@ -143,6 +156,7 @@ def save_figure(date, folder, ax, fig):
         os.makedirs(directory)
     filename = "{}/{}/{}.png".format(folder, date, str(g_imagecount).zfill(5))
     extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    print("Extent:", extent)
     # print("Window Extent:", extent)
     dpi = (1 / (extent.y1 - extent.y0)) * 1080
     # print("dpi:", dpi)
@@ -190,7 +204,7 @@ def main():
 
     scatter_plot_size = 1
     if args.full:
-        scatter_plot_size = 0.5
+        scatter_plot_size = 0.2
 
     radar_data = get_radar_data(args.map)
 
@@ -217,7 +231,7 @@ def main():
                           '')
             sys.stdout.flush()
             if len(player_coords.ct_x) > 0:
-
+                timer_start = timer()
                 fig, ax = plt.subplots(figsize=(1, 1), facecolor='c')
 
                 # ax.axis('off')
@@ -259,6 +273,7 @@ def main():
                 save_figure(date, args.outputdir, ax, fig)
                 plt.close(fig)
                 clear_figure()
+                print("Plot time: {}".format(timer() - timer_start))
 
             clear_coords(player_coords)
             ref_tick = tick
