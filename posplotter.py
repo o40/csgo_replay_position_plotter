@@ -116,7 +116,7 @@ def plot_text(ax, tick):
     font = {'family': 'arial',
             'color':  'yellow',
             'weight': 'bold',
-            'size': 2}
+            'size': 32}
 
     title = "1:{} (Tick: {})".format(str(tickToRoundTime(tick) - 60), tick)
 
