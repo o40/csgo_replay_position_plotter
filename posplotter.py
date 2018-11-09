@@ -142,10 +142,6 @@ def save_figure(date, folder, ax, fig):
     g_imagecount += 1
 
 
-def clear_figure():
-    plt.gcf().clear()
-
-
 def read_position_data_from_file(csv_file, tick_range):
     position_data = []
     with open(csv_file) as rawfile:
@@ -195,7 +191,7 @@ def main():
 
     date = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
 
-    scatter_plot_size = 100
+    scatter_plot_size = 200
     if args.full:
         scatter_plot_size = 100
 
@@ -210,7 +206,7 @@ def main():
     debug_verbose("Sorting lines", args.verbosity)
     lines = sorted(position_data, key=lambda x: x[0])
 
-    im = plt.imread("radar_images/" + radar_data.image)
+    radar_image = plt.imread("radar_images/" + radar_data.image)
 
     ref_tick = 0
     player_coords = Coords([], [], [], [])
@@ -228,7 +224,7 @@ def main():
                                  dpi=args.dpi)
                 ax = plt.gca()
 
-                plot_set_properties(im,
+                plot_set_properties(radar_image,
                                     radar_data.plotarea,
                                     args.full,
                                     radar_data.extent)
@@ -264,7 +260,6 @@ def main():
                 if args.test:
                     exit()
                 plt.close(fig)
-                clear_figure()
 
             clear_coords(player_coords)
             ref_tick = tick
