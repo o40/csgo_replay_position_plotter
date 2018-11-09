@@ -109,7 +109,6 @@ def plot_set_properties(fig, ax, image, area, full, tick, extent):
     # No margins
     plt.margins(0)
     plt.axis("off")
-
     plt.imshow(image, extent=extent)
 
 
@@ -156,13 +155,15 @@ def save_figure(date, folder, ax, fig):
         os.makedirs(directory)
     filename = "{}/{}/{}.png".format(folder, date, str(g_imagecount).zfill(5))
     extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-    print("Extent:", extent)
-    # print("Window Extent:", extent)
-    dpi = (1 / (extent.y1 - extent.y0)) * 1080
-    # print("dpi:", dpi)
-    fig.savefig(filename,
-                bbox_inches=extent,
-                dpi=dpi,
+
+    plt.gca().set_axis_off()
+    plt.subplots_adjust(top=1, bottom=0, right=1, left=0,
+                        hspace=0, wspace=0)
+    plt.margins(0, 0)
+    plt.gca().xaxis.set_major_locator(plt.NullLocator())
+    plt.gca().yaxis.set_major_locator(plt.NullLocator())
+    plt.savefig(filename,
+                bbox_inches='tight',
                 pad_inches=0)
     g_imagecount += 1
 
@@ -171,17 +172,33 @@ def clear_figure():
     plt.gcf().clear()
 
 
-def read_position_data_from_file(csv_file, frame_range):
+def read_position_data_from_file(csv_file, tick_range):
     position_data = []
     with open(csv_file) as rawfile:
         for row in rawfile:
             tick, x, y, team = row.split(',')
-            if int(tick) >= frame_range.start and int(tick) < frame_range.stop:
+            if int(tick) >= tick_range.start and int(tick) < tick_range.stop:
                 position_data.append(PositionData(int(tick),
                                                   float(x),
                                                   float(y),
                                                   team))
     return position_data
+
+
+def print_progress(tick, tick_range, verbosity, last_tick_timer):
+    current_tick = tick - tick_range.start
+    total_ticks = tick_range.stop - tick_range.start
+    time_elapsed = timer() - last_tick_timer
+    time_remaining = (total_ticks - current_tick) * time_elapsed
+
+    msg = "Processed tick: ({}/{} ~{:.0f}s remaining) {:.2f}s \r"
+
+    debug_verbose(msg.format(current_tick,
+                             total_ticks,
+                             time_remaining,
+                             time_elapsed),
+                  verbosity,
+                  '')
 
 
 def main():
@@ -193,6 +210,7 @@ def main():
     parser.add_argument("--full", action='store_true')
     parser.add_argument("--start", default=4, type=int)
     parser.add_argument("--stop", default=10, type=int)
+    parser.add_argument("--dpi", default=100, type=int)
     parser.add_argument("--verbosity", default=1, type=int)
     parser.add_argument("--wallbang", action='store_true')
 
@@ -211,8 +229,8 @@ def main():
     debug_verbose("Reading lines", args.verbosity)
     sys.stdout.flush()
 
-    frame_range = FrameRange(args.start * 128, args.stop * 128)
-    position_data = read_position_data_from_file(args.input, frame_range)
+    tick_range = FrameRange(args.start * 128, args.stop * 128)
+    position_data = read_position_data_from_file(args.input, tick_range)
 
     debug_verbose("Sorting lines", args.verbosity)
     lines = sorted(position_data, key=lambda x: x[0])
@@ -221,21 +239,19 @@ def main():
 
     ref_tick = 0
     player_coords = Coords([], [], [], [])
+    tick_timer = timer()
     for row in lines:
         tick, x, y, team = row
 
         if (ref_tick != tick):
-            debug_verbose("Processed tick: ({}/{})\r".format(tick,
-                                                             frame_range.stop),
-                          args.verbosity,
-                          '')
+            print_progress(tick, tick_range, args.verbosity, tick_timer)
+            tick_timer = timer()
+
             sys.stdout.flush()
             if len(player_coords.ct_x) > 0:
-                timer_start = timer()
-                fig, ax = plt.subplots(figsize=(1, 1), facecolor='c')
-
-                # ax.axis('off')
-                # ax.imshow(im, extent=radar_data.extent)
+                fig = plt.figure(figsize=(1080/args.dpi, 1080/args.dpi),
+                                 dpi=args.dpi)
+                ax = plt.gca()
 
                 plot_set_properties(fig,
                                     ax,
@@ -273,7 +289,6 @@ def main():
                 save_figure(date, args.outputdir, ax, fig)
                 plt.close(fig)
                 clear_figure()
-                print("Plot time: {}".format(timer() - timer_start))
 
             clear_coords(player_coords)
             ref_tick = tick
