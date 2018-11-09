@@ -1,7 +1,5 @@
-import csv
 import matplotlib as mpl
 import matplotlib.pylab as plt
-import numpy as np
 import math
 import sys
 import argparse
@@ -12,31 +10,13 @@ from timeit import default_timer as timer
 
 from radardata import *
 
-'''
-mpl.rcParams['axes.labelsize'] = 10
-mpl.rcParams['xtick.labelsize'] = 10
-mpl.rcParams['ytick.labelsize'] = 10
-mpl.rcParams['legend.fontsize'] = 10
-mpl.rcParams['font.family'] = ['sans-serif']
-mpl.rcParams['font.sans-serif'] = ['Arial']
-mpl.rcParams['text.usetex'] = False
-mpl.rcParams['svg.fonttype'] = 'none'
-'''
-
 # TODOS:
 '''
 TODO: Refactor "RadarData" since it now contains more than it should
-TODO: Make sure that the timing is correct
-TODO: Optimization? It is quite slow, and unusable for large data sets
-TODO: Handle last frame?
 '''
-
-mpl.rcParams["figure.figsize"] = [10.8, 10.8]
-mpl.rcParams["figure.dpi"] = 100
 
 # Globals
 g_imagecount = 0
-g_image_size = [1920, 1080]
 
 
 def debug_log(msg, verbosity_level):
@@ -69,14 +49,13 @@ def tickToRoundTime(tick):
     # Tick includes 15 seconds buy time
     roundSeconds = 1 * 60 + 55
     secondsLeftInRound = math.ceil(roundSeconds - (int(tick) / 128))
-    # print("Seconds left:", str(secondsLeftInRound), tick)
     return secondsLeftInRound
 
 
 def plot_players(ax, x, y, size, team):
     color = "orange"
     if team == "ct":
-        color = "blue"
+        color = "magenta"
     plt.scatter(x,
                 y,
                 s=size,
@@ -100,15 +79,10 @@ def plot_wallbang(pos, size, length):
                     linewidths=0)
 
 
-def plot_set_properties(fig, ax, image, area, full, tick, extent):
-    # plt.style.use('Solarize_Light2')
+def plot_set_properties(image, area, full, extent):
     # Draw full map instead of zoomed in
     if not full:
         plt.axis(area)
-
-    # No margins
-    plt.margins(0)
-    plt.axis("off")
     plt.imshow(image, extent=extent)
 
 
@@ -191,7 +165,7 @@ def print_progress(tick, tick_range, verbosity, last_tick_timer):
     time_elapsed = timer() - last_tick_timer
     time_remaining = (total_ticks - current_tick) * time_elapsed
 
-    msg = "Processed tick: ({}/{} ~{:.0f}s remaining) {:.2f}s \r"
+    msg = "Processed tick: ({}/{} ~{:.0f}s remaining) {:.2f}s per tick\r"
 
     debug_verbose(msg.format(current_tick,
                              total_ticks,
@@ -211,6 +185,7 @@ def main():
     parser.add_argument("--start", default=4, type=int)
     parser.add_argument("--stop", default=10, type=int)
     parser.add_argument("--dpi", default=100, type=int)
+    parser.add_argument("--test", action='store_true')
     parser.add_argument("--verbosity", default=1, type=int)
     parser.add_argument("--wallbang", action='store_true')
 
@@ -220,9 +195,9 @@ def main():
 
     date = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
 
-    scatter_plot_size = 1
+    scatter_plot_size = 100
     if args.full:
-        scatter_plot_size = 0.2
+        scatter_plot_size = 100
 
     radar_data = get_radar_data(args.map)
 
@@ -253,12 +228,9 @@ def main():
                                  dpi=args.dpi)
                 ax = plt.gca()
 
-                plot_set_properties(fig,
-                                    ax,
-                                    im,
+                plot_set_properties(im,
                                     radar_data.plotarea,
                                     args.full,
-                                    tick,
                                     radar_data.extent)
 
                 plot_text(ax, tick)
@@ -287,6 +259,10 @@ def main():
                     exit()
 
                 save_figure(date, args.outputdir, ax, fig)
+
+                # Test plotter
+                if args.test:
+                    exit()
                 plt.close(fig)
                 clear_figure()
 
