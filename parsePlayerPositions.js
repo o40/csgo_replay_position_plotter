@@ -24,7 +24,7 @@ function has_decimals(n)
 // 2 is T, 3 is CT
 function print_positions(teams, round, tick, team_index)
 {
-  let team_id = "c"
+  let team_id = "t"
   if (team_index == TEAM_CT) {
     team_id = "ct"
   }
