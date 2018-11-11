@@ -4,6 +4,7 @@ import math
 import sys
 import argparse
 import collections
+from collections import defaultdict
 import datetime
 import os
 from timeit import default_timer as timer
@@ -52,10 +53,10 @@ def tickToRoundTime(tick):
     return secondsLeftInRound
 
 
-def plot_players(ax, x, y, size, team):
+def plot_players(x, y, size, team):
     color = "orange"
     if team == "ct":
-        color = "magenta"
+        color = "dodgerblue"
     plt.scatter(x,
                 y,
                 s=size,
@@ -191,9 +192,9 @@ def main():
 
     date = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
 
-    scatter_plot_size = 200
+    scatter_plot_size = 100
     if args.full:
-        scatter_plot_size = 100
+        scatter_plot_size = 50
 
     radar_data = get_radar_data(args.map)
 
@@ -232,14 +233,12 @@ def main():
                 plot_text(ax, tick)
 
                 # Plot player positions
-                plot_players(ax,
-                             player_coords.ct_x,
+                plot_players(player_coords.ct_x,
                              player_coords.ct_y,
                              scatter_plot_size,
                              "ct")
 
-                plot_players(ax,
-                             player_coords.t_x,
+                plot_players(player_coords.t_x,
                              player_coords.t_y,
                              scatter_plot_size,
                              "t")
