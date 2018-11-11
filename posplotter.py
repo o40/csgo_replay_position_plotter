@@ -53,14 +53,20 @@ def tickToRoundTime(tick):
     return secondsLeftInRound
 
 
-def plot_player_position(x, y, size, team):
-    color = "orange"
-    if team == "ct":
-        color = "dodgerblue"
-    plt.scatter(x,
-                y,
+def plot_player_positions(positions, size):
+    t_color = "orange"
+    ct_color = "dodgerblue"
+    plt.scatter([x[1] for x in positions if x[3] == "t"],
+                [x[2] for x in positions if x[3] == "t"],
                 s=size,
-                color=color,
+                color=t_color,
+                alpha=1,
+                marker='.',
+                linewidths=0)
+    plt.scatter([x[1] for x in positions if x[3] == "ct"],
+                [x[2] for x in positions if x[3] == "ct"],
+                s=size,
+                color=ct_color,
                 alpha=1,
                 marker='.',
                 linewidths=0)
@@ -223,10 +229,7 @@ def main():
                             args.full,
                             radar_data.extent)
         plot_text(ax, tick)
-
-        for position in positions:
-            tick, x, y, team = position
-            plot_player_position(x, y, scatter_plot_size, team)
+        plot_player_positions(positions, scatter_plot_size)
 
         if args.wallbang:
             plot_wallbang(radar_data.bangpos,
