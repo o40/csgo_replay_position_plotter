@@ -53,7 +53,7 @@ def tickToRoundTime(tick):
     return secondsLeftInRound
 
 
-def plot_players(x, y, size, team):
+def plot_player_position(x, y, size, team):
     color = "orange"
     if team == "ct":
         color = "dodgerblue"
@@ -149,7 +149,7 @@ def read_position_data_from_file(csv_file, tick_range):
     with open(csv_file) as rawfile:
         for row in rawfile:
             tick, x, y, team = row.split(',')
-            tick, x, y = int(tick), float(x), float(y)
+            tick, x, y, team = int(tick), float(x), float(y), team.strip('\n')
             if tick >= tick_range.start and tick < tick_range.stop:
                 position_data[tick].append(PositionData(tick, x, y, team))
     return position_data
@@ -205,60 +205,46 @@ def main():
 
     radar_image = plt.imread("radar_images/" + radar_data.image)
 
-    player_coords = Coords([], [], [], [])
     tick_timer = None
     for key in position_data.keys():
         positions = position_data[key]
-        for position in positions:
-            tick, x, y, team = position
-            update_coords(player_coords, x, y, team)
-
+        tick = key
         if tick_timer is not None:
             print_progress(tick, tick_range, args.verbosity, tick_timer)
+            sys.stdout.flush()
         tick_timer = timer()
 
-        sys.stdout.flush()
-        if len(player_coords.ct_x) > 0:
-            fig = plt.figure(figsize=(1080/args.dpi, 1080/args.dpi),
-                             dpi=args.dpi)
-            ax = plt.gca()
+        fig = plt.figure(figsize=(1080/args.dpi, 1080/args.dpi),
+                         dpi=args.dpi)
+        ax = plt.gca()
 
-            plot_set_properties(radar_image,
-                                radar_data.plotarea,
-                                args.full,
-                                radar_data.extent)
+        plot_set_properties(radar_image,
+                            radar_data.plotarea,
+                            args.full,
+                            radar_data.extent)
+        plot_text(ax, tick)
 
-            plot_text(ax, tick)
+        for position in positions:
+            tick, x, y, team = position
+            plot_player_position(x, y, scatter_plot_size, team)
 
-            # Plot player positions
-            plot_players(player_coords.ct_x,
-                         player_coords.ct_y,
-                         scatter_plot_size,
-                         "ct")
+        if args.wallbang:
+            plot_wallbang(radar_data.bangpos,
+                          scatter_plot_size,
+                          radar_data.banglength)
 
-            plot_players(player_coords.t_x,
-                         player_coords.t_y,
-                         scatter_plot_size,
-                         "t")
+        # Show and exit
+        if args.show:
+            plt.show()
+            exit()
 
-            if args.wallbang:
-                plot_wallbang(radar_data.bangpos,
-                              scatter_plot_size,
-                              radar_data.banglength)
+        save_figure(date, args.outputdir, ax, fig)
 
-            # Show and exit
-            if args.show:
-                plt.show()
-                exit()
+        # Test plotter
+        if args.test:
+            exit()
 
-            save_figure(date, args.outputdir, ax, fig)
-
-            # Test plotter
-            if args.test:
-                exit()
-            plt.close(fig)
-
-            clear_coords(player_coords)
+        plt.close(fig)
 
 
 if __name__ == "__main__":
