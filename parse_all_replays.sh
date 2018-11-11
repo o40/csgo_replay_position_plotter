@@ -17,7 +17,7 @@ for f in replays/*$1*.dem; do
 	csvfile=csv/$(basename "${f%.*}").csv
 	if [ ! -f $csvfile ]; then
 		echo "[$pcnt] Parsing $f to $csvfile"
-		node parsePlayerPositions.js $f > $csvfile &
+		node parsePlayerPositions.js $f | ./fix_tick_gaps.py > $csvfile &
 		pcnt=$((pcnt + 1))
 	else
 		echo "$csvfile already exists"
