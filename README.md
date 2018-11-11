@@ -35,8 +35,8 @@ python -m pip install -U matplotlib
 
 ## Parsing
 
-Parse using the parsePlayerPositions script:
-`node parsePlayerPositions.js replays/astralis-vs-faze-m1-cache.dem`
+Parse using the parsePlayerPositions and fix_tick_gaps script:
+`node parsePlayerPositions.js replays/astralis-vs-faze-m1-cache.dem | ./fix_tick_gaps.py`
 and save the output to a file.
 
 To parse more then one replay at once, use the parse_all_replays script. It takes a parameter which is a search string in the replays folder.
