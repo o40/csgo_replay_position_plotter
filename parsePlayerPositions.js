@@ -2,7 +2,7 @@ const demofile = require('demofile');
 const fs = require('fs');
 
 const roundIntervalStartTicks = 1 * 128
-const roundIntervalStopTicks = 30 * 128
+const roundIntervalStopTicks = 18 * 128
 
 const filename = process.argv[2];
 
@@ -13,6 +13,9 @@ const filename = process.argv[2];
 var roundStartTick = 0;
 var lastTick = 0;
 
+var TEAM_T = 2;
+var TEAM_CT = 3;
+
 function has_decimals(n)
 {
   return (n - Math.floor(n)) !== 0;
@@ -22,7 +25,7 @@ function has_decimals(n)
 function print_positions(teams, round, tick, team_index)
 {
   let team_id = "c"
-  if (team_index == 3) {
+  if (team_index == TEAM_CT) {
     team_id = "ct"
   }
 
@@ -54,7 +57,7 @@ fs.readFile(filename, function (err, buffer) {
   });
 
   demoFile.on('tickend', e => {
-  	if (round_active) {
+    if (round_active) {
 
   		let roundTicks = demoFile.currentTick - roundStartTick;
 
@@ -65,15 +68,15 @@ fs.readFile(filename, function (err, buffer) {
 
   		if (roundTicks >= roundIntervalStartTicks) {
   			if (demoFile.currentTick - lastTick != 1) {
-  				console.error("Missing ticks in demo: %s", filename);
+  				console.error("Missing ticks in: %s (interpolating)", filename);
           // Optional return here?
           // return
   			}
 
   			let teams = demoFile.teams;
         let round = demoFile.gameRules.roundsPlayed;
-        print_positions(teams, round, roundTicks, 3);
-        print_positions(teams, round, roundTicks, 2);
+        print_positions(teams, round, roundTicks, TEAM_CT);
+        print_positions(teams, round, roundTicks, TEAM_T);
   		}
   	}
   	lastTick = demoFile.currentTick;
