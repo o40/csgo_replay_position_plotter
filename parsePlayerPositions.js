@@ -1,14 +1,13 @@
 const demofile = require('demofile');
 const fs = require('fs');
 
-const roundIntervalStartTicks = 1 * 128
-const roundIntervalStopTicks = 18 * 128
+const roundIntervalStartTicks = 0 * 128
+const roundIntervalStopTicks = 20 * 128
 
 const filename = process.argv[2];
 
 // TODO: Read start and stop seconds as arguments,
 //       and check that arguments are supplied
-// TODO: Optionally continue on missing ticks
 
 var roundStartTick = 0;
 var lastTick = 0;
@@ -68,7 +67,8 @@ fs.readFile(filename, function (err, buffer) {
 
   		if (roundTicks >= roundIntervalStartTicks) {
   			if (demoFile.currentTick - lastTick != 1) {
-  				console.error("Missing ticks in: %s (has to be interpolated post process)", filename);
+					console.error("Missing ticks in: %s (has to be interpolated post process)", filename);
+					console.error("Tick jump: %d -> %d", lastTick, demoFile.currentTick);
   			}
 
   			let teams = demoFile.teams;
