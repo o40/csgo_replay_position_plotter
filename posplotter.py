@@ -8,16 +8,15 @@ from collections import defaultdict
 import datetime
 import os
 from timeit import default_timer as timer
-
 from radardata import *
 
-# TODOS:
-'''
-TODO: Refactor "RadarData" since it now contains more than it should
-'''
 
 # Globals
 g_imagecount = 0
+
+# Named tuples
+FrameRange = collections.namedtuple('FrameRange', 'start stop')
+PositionData = collections.namedtuple('PositionData', 'tick x y team')
 
 
 def debug_log(msg, verbosity_level):
@@ -28,14 +27,6 @@ def debug_log(msg, verbosity_level):
 def debug_verbose(msg, verbosity_level, end="\n"):
     if verbosity_level >= 2:
         print(msg, end=end)
-
-
-# Named tuples
-FrameRange = collections.namedtuple('FrameRange', 'start stop')
-
-Coords = collections.namedtuple('Coords', 'ct_x ct_y t_x t_y')
-
-PositionData = collections.namedtuple('PositionData', 'tick x y team')
 
 
 def get_line_end_point(x, y, deg, length):
@@ -113,22 +104,6 @@ def plot_text(ax, tick):
                        lw=0.2))
 
 
-def clear_coords(coords):
-    coords.t_x.clear()
-    coords.t_y.clear()
-    coords.ct_x.clear()
-    coords.ct_y.clear()
-
-
-def update_coords(coords, x, y, team):
-    if 't' in team:
-        coords.t_x.append(float(x))
-        coords.t_y.append(float(y))
-    else:
-        coords.ct_x.append(float(x))
-        coords.ct_y.append(float(y))
-
-
 def save_figure(date, folder, ax, fig):
     global g_imagecount
     directory = "{}/{}".format(folder, date)
@@ -150,8 +125,11 @@ def save_figure(date, folder, ax, fig):
 
 
 def read_position_data_from_file(csv_file, tick_range):
+    '''
+    Position data is stored in ticks of increasing order so
+    there is no need to sort the keys in the dict.
+    '''
     position_data = defaultdict(list)
-
     with open(csv_file) as rawfile:
         for row in rawfile:
             tick, x, y, team = row.split(',')
@@ -182,7 +160,6 @@ def main():
     parser.add_argument("--map", required=True)
     parser.add_argument("--input", required=True)
     parser.add_argument("--outputdir", default="plots")
-    parser.add_argument("--show", action='store_true')
     parser.add_argument("--full", action='store_true')
     parser.add_argument("--start", default=4, type=int)
     parser.add_argument("--stop", default=10, type=int)
@@ -208,7 +185,6 @@ def main():
 
     tick_range = FrameRange(args.start * 128, args.stop * 128)
     position_data = read_position_data_from_file(args.input, tick_range)
-
     radar_image = plt.imread("radar_images/" + radar_data.image)
 
     tick_timer = None
@@ -236,14 +212,9 @@ def main():
                           scatter_plot_size,
                           radar_data.banglength)
 
-        # Show and exit
-        if args.show:
-            plt.show()
-            exit()
-
         save_figure(date, args.outputdir, ax, fig)
 
-        # Test plotter
+        # Test plotter by only saving the first image
         if args.test:
             exit()
 
