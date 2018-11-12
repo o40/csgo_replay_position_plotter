@@ -16,11 +16,6 @@ var lastTick = 0;
 var TEAM_T = 2;
 var TEAM_CT = 3;
 
-function has_decimals(n)
-{
-  return (n - Math.floor(n)) !== 0;
-}
-
 // 2 is T, 3 is CT
 function print_positions(teams, round, tick, team_index)
 {
@@ -34,10 +29,8 @@ function print_positions(teams, round, tick, team_index)
     if(typeof members[i] !== "undefined") {
       let pos = members[i].position;
       let userid = members[i].userId;
-      if (has_decimals(pos.x)) {
-        console.log("%d,%d,%f,%f,%d,%s",
-          tick, round, pos.x, pos.y, userid, team_id);
-      }
+      console.log("%d,%d,%f,%f,%d,%s",
+        tick, round, pos.x, pos.y, userid, team_id);
     }
   }
 }
@@ -47,13 +40,20 @@ fs.readFile(filename, function (err, buffer) {
 
   var round_active = false;
 
+  // This is the time when players can move
   demoFile.gameEvents.on('round_freeze_end', e => {
     round_active = true;
     roundStartTick = demoFile.currentTick;
   });
 
+  // Do not plot ticks after this point
   demoFile.gameEvents.on('round_end', e => {
     round_active = false;
+  });
+
+  // Game officially ended
+  demoFile.gameEvents.on('cs_win_panel_match', e => {
+    process.exit()
   });
 
   demoFile.on('tickend', e => {
@@ -68,9 +68,7 @@ fs.readFile(filename, function (err, buffer) {
 
   		if (roundTicks >= roundIntervalStartTicks) {
   			if (demoFile.currentTick - lastTick != 1) {
-  				console.error("Missing ticks in: %s (interpolating)", filename);
-          // Optional return here?
-          // return
+  				console.error("Missing ticks in: %s (has to be interpolated post process)", filename);
   			}
 
   			let teams = demoFile.teams;
