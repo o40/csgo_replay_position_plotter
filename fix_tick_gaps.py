@@ -2,8 +2,9 @@
 
 import sys
 import collections
+from collections import defaultdict
 
-PlayerPos = collections.namedtuple('PlayerPos', 'x y tick')
+TickData = collections.namedtuple('TickData', 'x, y, team')
 
 ref_round = 0
 
@@ -12,35 +13,33 @@ def new_round(r1, r2):
     return r1 != r2
 
 
-player_positions = {}
+replay_data = defaultdict(lambda: defaultdict(lambda: defaultdict()))
 
 data = sys.stdin
+
+# Read all data into table
 for row in data:
     tick, rnd, pos_x, pos_y, user_id, team = row.split(',')
-    tick = int(tick)
-    rnd = int(rnd)
-    pos_x = float(pos_x)
-    pos_y = float(pos_y)
-    team = team.rstrip()
+    tick, rnd, pos_x, pos_y, user_id, team = int(tick), int(rnd), float(pos_x), float(pos_y), int(user_id), team.rstrip()
+    replay_data[rnd][tick][user_id] = TickData(pos_x, pos_y, team)
 
-    if (new_round(rnd, ref_round)):
-        player_positions.clear()
-
-    prev_player_pos = player_positions.get(user_id)
-    if prev_player_pos is not None:
-        prev_x, prev_y, prev_tick = prev_player_pos
-        prev_x = float(prev_x)
-        prev_y = float(prev_y)
-        if tick != (prev_tick + 1):
-            missing_ticks = tick - prev_player_pos.tick
-            step_x = (pos_x - prev_x) / missing_ticks
-            step_y = (pos_y - prev_y) / missing_ticks
-            for i in range(1, missing_ticks):
-                print("{},{},{},{}".format(tick,
-                                           prev_x + (step_x * i),
-                                           prev_y + (step_y * i),
-                                           team))
-
-    print("{},{},{},{}".format(tick, pos_x, pos_y, team))
-    player_positions[user_id] = PlayerPos(pos_x, pos_y, tick)
-    ref_round = rnd
+for rnd in replay_data:
+    last_tick = None
+    for tick in replay_data[rnd]:
+        if last_tick is not None:
+            tick_diff = tick - last_tick
+            if tick_diff != 1:
+                for player in replay_data[rnd][tick]:
+                    curr_tickdata = replay_data[rnd][tick][player]
+                    last_tickdata = replay_data[rnd][last_tick][player]
+                    step_x = (curr_tickdata.x - last_tickdata.x) / tick_diff
+                    step_y = (curr_tickdata.y - last_tickdata.y) / tick_diff
+                    for i in range(1, tick_diff):
+                        print("{},{},{},{}".format(last_tick + i,
+                                                   last_tickdata.x + (step_x * i),
+                                                   last_tickdata.y + (step_y * i),
+                                                   last_tickdata.team))
+        for player in replay_data[rnd][tick]:
+            tickdata = replay_data[rnd][tick][player]
+            print("{},{},{},{}".format(tick, tickdata.x, tickdata.y, tickdata.team))
+        last_tick = tick
