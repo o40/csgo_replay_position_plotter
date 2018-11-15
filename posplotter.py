@@ -51,7 +51,7 @@ def plot_player_positions(positions, size):
     t_cmap = ["orange"] * len(t_x)
     ct_x = [x[1] for x in positions if x[3] == "ct"]
     ct_y = [x[2] for x in positions if x[3] == "ct"]
-    ct_cmap = ["royalblue"] * len(ct_x)
+    ct_cmap = ["lime"] * len(ct_x)
 
     plt.scatter(t_x + ct_x,
                 t_y + ct_y,
@@ -66,7 +66,7 @@ def plot_wallbang(pos, size, length):
     if pos is not None:
         x1, y1, ang = pos
         x2, y2 = get_line_end_point(x1, y1, ang, length)
-        plt.plot([x1, x2], [y1, y2], 'k-', color='r', lw=0.3)
+        plt.plot([x1, x2], [y1, y2], 'k-', color='r', lw=4)
         plt.scatter(x1,
                     y1,
                     s=size*5,
@@ -181,7 +181,7 @@ def main():
     debug_log("Parsing {} for {}".format(args.map, args.input), args.verbosity)
     sys.stdout.flush()
 
-    scatter_plot_size = 100
+    scatter_plot_size = 300
     if args.full:
         scatter_plot_size = 50
 
