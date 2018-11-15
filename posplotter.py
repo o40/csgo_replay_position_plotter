@@ -1,6 +1,7 @@
 import matplotlib as mpl
 import matplotlib.pylab as plt
 import math
+import numpy as np
 import sys
 import argparse
 import collections
@@ -45,19 +46,17 @@ def tickToRoundTime(tick):
 
 
 def plot_player_positions(positions, size):
-    t_color = "orange"
-    ct_color = "dodgerblue"
-    plt.scatter([x[1] for x in positions if x[3] == "t"],
-                [x[2] for x in positions if x[3] == "t"],
+    t_x = [x[1] for x in positions if x[3] == "t"]
+    t_y = [x[2] for x in positions if x[3] == "t"]
+    t_cmap = ["orange"] * len(t_x)
+    ct_x = [x[1] for x in positions if x[3] == "ct"]
+    ct_y = [x[2] for x in positions if x[3] == "ct"]
+    ct_cmap = ["lime"] * len(ct_x)
+
+    plt.scatter(t_x + ct_x,
+                t_y + ct_y,
                 s=size,
-                color=t_color,
-                alpha=1,
-                marker='.',
-                linewidths=0)
-    plt.scatter([x[1] for x in positions if x[3] == "ct"],
-                [x[2] for x in positions if x[3] == "ct"],
-                s=size,
-                color=ct_color,
+                color=t_cmap + ct_cmap,
                 alpha=1,
                 marker='.',
                 linewidths=0)
@@ -90,12 +89,12 @@ def plot_text(ax, tick):
             'weight': 'bold',
             'size': 32}
 
-    title = "1:{} (Tick: {})".format(str(tickToRoundTime(tick) - 60), tick)
+    title = "1:{}".format(str(tickToRoundTime(tick) - 60))
 
-    plt.text(0.02, 0.98, title,
+    plt.text(0.50, 0.98, title,
              fontdict=font,
              transform=ax.transAxes,
-             ha='left',
+             ha='center',
              va='top',
              bbox=dict(alpha=1,
                        boxstyle="round",
@@ -124,11 +123,12 @@ def save_figure(date, folder, ax, fig):
     g_imagecount += 1
 
 
-def read_position_data_from_file(csv_file, tick_range):
+def read_position_data_from_file(csv_file, tick_range, verbosity):
     '''
     Position data is stored in ticks of increasing order so
     there is no need to sort the keys in the dict.
     '''
+    rows_read = 0
     position_data = defaultdict(list)
     with open(csv_file) as rawfile:
         for row in rawfile:
@@ -136,14 +136,19 @@ def read_position_data_from_file(csv_file, tick_range):
             tick, x, y, team = int(tick), float(x), float(y), team.strip('\n')
             if tick >= tick_range.start and tick < tick_range.stop:
                 position_data[tick].append(PositionData(tick, x, y, team))
+            if rows_read % 100000 == 0:
+                debug_verbose(".", verbosity, '')
+                sys.stdout.flush()
+            rows_read += 1
+    debug_verbose(".", verbosity)
     return position_data
 
 
-def print_progress(tick, tick_range, verbosity, last_tick_timer):
+def print_progress(tick, tick_range, verbosity, last_tick_timer, step):
     current_tick = tick - tick_range.start
     total_ticks = tick_range.stop - tick_range.start
     time_elapsed = timer() - last_tick_timer
-    time_remaining = (total_ticks - current_tick) * time_elapsed
+    time_remaining = ((total_ticks - current_tick) * time_elapsed) / step
 
     msg = "Processed tick: ({}/{} ~{:.0f}s remaining) {:.2f}s per tick\r"
 
@@ -163,14 +168,17 @@ def main():
     parser.add_argument("--full", action='store_true')
     parser.add_argument("--start", default=4, type=int)
     parser.add_argument("--stop", default=10, type=int)
+    parser.add_argument("--step", default=1, type=int)
     parser.add_argument("--dpi", default=100, type=int)
     parser.add_argument("--test", action='store_true')
+    parser.add_argument("--noimg", action='store_true')
     parser.add_argument("--verbosity", default=1, type=int)
     parser.add_argument("--wallbang", action='store_true')
 
     args = parser.parse_args()
 
     debug_log("Parsing {} for {}".format(args.map, args.input), args.verbosity)
+    sys.stdout.flush()
 
     date = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
 
@@ -180,19 +188,24 @@ def main():
 
     radar_data = get_radar_data(args.map)
 
-    debug_verbose("Reading lines", args.verbosity)
-    sys.stdout.flush()
-
     tick_range = FrameRange(args.start * 128, args.stop * 128)
-    position_data = read_position_data_from_file(args.input, tick_range)
+    position_data = read_position_data_from_file(args.input, tick_range, args.verbosity)
+
     radar_image = plt.imread("radar_images/" + radar_data.image)
+    if args.noimg:
+        radar_image = plt.imread("radar_images/black.png")
 
     tick_timer = None
+    step = 0
     for key in position_data.keys():
         positions = position_data[key]
+        if step % args.step != 0:
+            step += 1
+            continue
+        step += 1
         tick = key
         if tick_timer is not None:
-            print_progress(tick, tick_range, args.verbosity, tick_timer)
+            print_progress(tick, tick_range, args.verbosity, tick_timer, args.step)
             sys.stdout.flush()
         tick_timer = timer()
 
