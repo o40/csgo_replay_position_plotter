@@ -51,7 +51,7 @@ def plot_player_positions(positions, size):
     t_cmap = ["orange"] * len(t_x)
     ct_x = [x[1] for x in positions if x[3] == "ct"]
     ct_y = [x[2] for x in positions if x[3] == "ct"]
-    ct_cmap = ["lime"] * len(ct_x)
+    ct_cmap = ["royalblue"] * len(ct_x)
 
     plt.scatter(t_x + ct_x,
                 t_y + ct_y,
@@ -164,14 +164,15 @@ def main():
     parser = argparse.ArgumentParser(description='Plot player positions')
     parser.add_argument("--map", required=True)
     parser.add_argument("--input", required=True)
-    parser.add_argument("--outputdir", default="plots")
+    parser.add_argument("--outputdir", default=datetime.datetime.today().strftime('%Y%m%d-%H%M%S'))
     parser.add_argument("--full", action='store_true')
     parser.add_argument("--start", default=4, type=int)
     parser.add_argument("--stop", default=10, type=int)
-    parser.add_argument("--step", default=1, type=int)
+    parser.add_argument("--step", default=2, type=int)
     parser.add_argument("--dpi", default=100, type=int)
     parser.add_argument("--test", action='store_true')
     parser.add_argument("--noimg", action='store_true')
+    parser.add_argument("--notxt", action='store_true')
     parser.add_argument("--verbosity", default=1, type=int)
     parser.add_argument("--wallbang", action='store_true')
 
@@ -179,8 +180,6 @@ def main():
 
     debug_log("Parsing {} for {}".format(args.map, args.input), args.verbosity)
     sys.stdout.flush()
-
-    date = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
 
     scatter_plot_size = 100
     if args.full:
@@ -217,7 +216,8 @@ def main():
                             radar_data.plotarea,
                             args.full,
                             radar_data.extent)
-        plot_text(ax, tick)
+        if not args.notxt:
+            plot_text(ax, tick)
         plot_player_positions(positions, scatter_plot_size)
 
         if args.wallbang:
@@ -225,7 +225,7 @@ def main():
                           scatter_plot_size,
                           radar_data.banglength)
 
-        save_figure(date, args.outputdir, ax, fig)
+        save_figure(args.outputdir, "plots", ax, fig)
 
         # Test plotter by only saving the first image
         if args.test:
