@@ -29,9 +29,8 @@ def verify_data(csv_file):
         # Check for strict increasing order
         if last_key is not None:
             if ((int(key) - int(last_key)) != 1):
-                print("{} BROKEN (missing ticks!?)"
-                      .format(csv_file, last_num_positions, num_positions))
-                sys.exit(1)
+                print("{} BROKEN (Tick jump {} -> {})"
+                      .format(csv_file, int(key), int(last_key)))
 
         # Check that num positions are not fluctuating
         num_positions = len(demo_data[key])
