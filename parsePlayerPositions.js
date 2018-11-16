@@ -38,7 +38,7 @@ fs.readFile(filename, function (err, buffer) {
   let demoFile = new demofile.DemoFile();
 
   var round_active = false;
-
+  var match_started = false;
   // This is the time when players can move
   demoFile.gameEvents.on('round_freeze_end', e => {
     round_active = true;
@@ -46,9 +46,18 @@ fs.readFile(filename, function (err, buffer) {
   });
 
   // Do not plot ticks after this point
-  demoFile.gameEvents.on('round_end', e => {
+  demoFile.gameEvents.on('round_officially_ended', e => {
     round_active = false;
   });
+
+  demoFile.gameEvents.on('round_announce_match_start', e => {
+    if (match_started) {
+      console.error("Match started twice. Need to handle this somehow");
+      process.exit();
+    }
+    match_started = true;
+  });
+
 
   // Game officially ended
   demoFile.gameEvents.on('cs_win_panel_match', e => {

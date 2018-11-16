@@ -45,13 +45,18 @@ def tickToRoundTime(tick):
     return secondsLeftInRound
 
 
-def plot_player_positions(positions, size):
+def plot_player_positions(positions, size, noimg):
     t_x = [x[1] for x in positions if x[3] == "t"]
     t_y = [x[2] for x in positions if x[3] == "t"]
     t_cmap = ["orange"] * len(t_x)
     ct_x = [x[1] for x in positions if x[3] == "ct"]
     ct_y = [x[2] for x in positions if x[3] == "ct"]
-    ct_cmap = ["lime"] * len(ct_x)
+
+    ct_color = "lime"
+    if noimg:
+        ct_color = "royalblue"
+
+    ct_cmap = [ ct_color ] * len(ct_x)
 
     plt.scatter(t_x + ct_x,
                 t_y + ct_y,
@@ -91,7 +96,7 @@ def plot_text(ax, tick):
 
     title = "1:{}".format(str(tickToRoundTime(tick) - 60))
 
-    plt.text(0.50, 0.98, title,
+    plt.text(0.25, 0.98, title,
              fontdict=font,
              transform=ax.transAxes,
              ha='center',
@@ -218,7 +223,7 @@ def main():
                             radar_data.extent)
         if not args.notxt:
             plot_text(ax, tick)
-        plot_player_positions(positions, scatter_plot_size)
+        plot_player_positions(positions, scatter_plot_size, args.noimg)
 
         if args.wallbang:
             plot_wallbang(radar_data.bangpos,
