@@ -201,13 +201,11 @@ def main():
 
     tick_timer = None
     step = 0
-    for key in position_data.keys():
-        positions = position_data[key]
+    for tick, positions in position_data.items():
         if step % args.step != 0:
             step += 1
             continue
         step += 1
-        tick = key
         if tick_timer is not None:
             print_progress(tick, tick_range, args.verbosity, tick_timer, args.step)
             sys.stdout.flush()
