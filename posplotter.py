@@ -9,7 +9,7 @@ from collections import defaultdict
 import datetime
 import os
 from timeit import default_timer as timer
-from radardata import *
+import radardata
 
 
 # Globals
@@ -56,7 +56,7 @@ def plot_player_positions(positions, size, noimg):
     if noimg:
         ct_color = "royalblue"
 
-    ct_cmap = [ ct_color ] * len(ct_x)
+    ct_cmap = [ct_color] * len(ct_x)
 
     plt.scatter(t_x + ct_x,
                 t_y + ct_y,
@@ -190,7 +190,7 @@ def main():
     if args.full:
         scatter_plot_size = 50
 
-    radar_data = get_radar_data(args.map)
+    radar_data = radardata.get_radar_data(args.map)
 
     tick_range = FrameRange(args.start * 128, args.stop * 128)
     position_data = read_position_data_from_file(args.input, tick_range, args.verbosity)
@@ -206,7 +206,7 @@ def main():
             step += 1
             continue
         step += 1
-        if tick_timer is not None:
+        if tick_timer:
             print_progress(tick, tick_range, args.verbosity, tick_timer, args.step)
             sys.stdout.flush()
         tick_timer = timer()
