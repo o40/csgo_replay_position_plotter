@@ -165,24 +165,57 @@ def print_progress(tick, tick_range, verbosity, last_tick_timer, step):
                   '')
 
 
-def main():
+def parse_arguments():
     parser = argparse.ArgumentParser(description='Plot player positions')
-    parser.add_argument("--map", required=True)
-    parser.add_argument("--input", required=True)
-    parser.add_argument("--outputdir", default=datetime.datetime.today().strftime('%Y%m%d-%H%M%S'))
-    parser.add_argument("--full", action='store_true')
-    parser.add_argument("--start", default=4, type=int)
-    parser.add_argument("--stop", default=10, type=int)
-    parser.add_argument("--step", default=2, type=int)
-    parser.add_argument("--dpi", default=100, type=int)
-    parser.add_argument("--test", action='store_true')
-    parser.add_argument("--noimg", action='store_true')
-    parser.add_argument("--notxt", action='store_true')
-    parser.add_argument("--verbosity", default=1, type=int)
-    parser.add_argument("--wallbang", action='store_true')
+    parser.add_argument("--map",
+                        required=True,
+                        help="The map to plot on")
+    parser.add_argument("--input",
+                        required=True,
+                        help="The CSV file to get plot data from")
+    parser.add_argument("--outputdir",
+                        default=datetime.datetime.today().strftime('%Y%m%d-%H%M%S'),
+                        help="The folder in which to create the output folder")
+    parser.add_argument("--full",
+                        action='store_true',
+                        help="Plot the full map instead of the \"region of interest\"")
+    parser.add_argument("--start",
+                        default=4,
+                        type=int,
+                        help="Second to start plotting from")
+    parser.add_argument("--stop",
+                        default=10,
+                        type=int,
+                        help="Second where to stop plotting")
+    parser.add_argument("--step",
+                        default=2,
+                        type=int,
+                        help="Frame step (not all 128 is needed for smooth video)")
+    parser.add_argument("--dpi",
+                        default=100,
+                        type=int,
+                        help="Output image dpi")
+    parser.add_argument("--test",
+                        action='store_true',
+                        help="Save one image and exit")
+    parser.add_argument("--noimg",
+                        action='store_true',
+                        help="Run plotting without storing imaged (for benchmarking)")
+    parser.add_argument("--notxt",
+                        action='store_true',
+                        help="Do not draw text in image")
+    parser.add_argument("--verbosity",
+                        default=1,
+                        type=int,
+                        help="Script text output verbosity")
+    parser.add_argument("--wallbang",
+                        action='store_true',
+                        help="Draw wallbang line")
+    return parser.parse_args()
 
-    args = parser.parse_args()
 
+def main():
+    args = parse_arguments()
     debug_log("Parsing {} for {}".format(args.map, args.input), args.verbosity)
     sys.stdout.flush()
 
