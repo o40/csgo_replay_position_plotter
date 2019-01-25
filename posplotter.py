@@ -1,15 +1,13 @@
-import matplotlib as mpl
-import matplotlib.pylab as plt
-import math
-import numpy as np
-import sys
+from collections import defaultdict
+from timeit import default_timer as timer
 import argparse
 import collections
-from collections import defaultdict
 import datetime
+import math
+import matplotlib.pylab as plt
 import os
-from timeit import default_timer as timer
 import radardata
+import sys
 
 
 # Globals
