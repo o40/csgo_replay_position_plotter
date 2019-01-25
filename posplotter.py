@@ -86,7 +86,7 @@ def plot_set_properties(image, area, full, extent):
     plt.imshow(image, extent=extent)
 
 
-def plot_text(ax, tick):
+def plot_text(tick):
     font = {'family': 'arial',
             'color':  'yellow',
             'weight': 'bold',
@@ -96,7 +96,7 @@ def plot_text(ax, tick):
 
     plt.text(0.25, 0.98, title,
              fontdict=font,
-             transform=ax.transAxes,
+             transform=plt.gca().transAxes,
              ha='center',
              va='top',
              bbox=dict(alpha=1,
@@ -106,13 +106,13 @@ def plot_text(ax, tick):
                        lw=0.2))
 
 
-def save_figure(date, folder, ax, fig):
+def save_figure(date, folder):
     global g_imagecount
     directory = "{}/{}".format(folder, date)
     if not os.path.exists(directory):
         os.makedirs(directory)
     filename = "{}/{}/{}.png".format(folder, date, str(g_imagecount).zfill(5))
-    extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    extent = plt.gca().get_window_extent().transformed(plt.gcf().dpi_scale_trans.inverted())
 
     plt.gca().set_axis_off()
     plt.subplots_adjust(top=1, bottom=0, right=1, left=0,
@@ -244,14 +244,13 @@ def main():
 
         fig = plt.figure(figsize=(1080/args.dpi, 1080/args.dpi),
                          dpi=args.dpi)
-        ax = plt.gca()
 
         plot_set_properties(radar_image,
                             radar_data.plotarea,
                             args.full,
                             radar_data.extent)
         if not args.notxt:
-            plot_text(ax, tick)
+            plot_text(tick)
         plot_player_positions(positions, scatter_plot_size, args.noimg)
 
         if args.wallbang:
@@ -259,7 +258,7 @@ def main():
                           scatter_plot_size,
                           radar_data.banglength)
 
-        save_figure(args.outputdir, "plots", ax, fig)
+        save_figure(args.outputdir, "plots")
 
         # Test plotter by only saving the first image
         if args.test:
