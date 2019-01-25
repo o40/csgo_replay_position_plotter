@@ -1,5 +1,8 @@
 # csgo_replay_position_plotter
 
+THESE INSTRUCTIONS MAY NOT BE THE LATEST AND GREATEST
+I WILL UPDATE THEM AT A LATER STAGE
+
 # Installation instructions
 
 1. Install node js: https://nodejs.org/en/download/
