@@ -45,22 +45,26 @@ def tickToRoundTime(tick):
 
 
 def plot_player_positions(positions, size, noimg):
-    t_x = [x[1] for x in positions if x[3] == "t"]
-    t_y = [x[2] for x in positions if x[3] == "t"]
-    t_cmap = ["orange"] * len(t_x)
-    ct_x = [x[1] for x in positions if x[3] == "ct"]
-    ct_y = [x[2] for x in positions if x[3] == "ct"]
-
+    # Colors
+    t_color = "orange"
     ct_color = "lime"
     if noimg:
         ct_color = "royalblue"
 
-    ct_cmap = [ct_color] * len(ct_x)
+    # Create lists suitable for scatterplot
+    x_positions, y_positions, color_map = [], [], []
+    for position in positions:
+        x_positions.append(position.x)
+        y_positions.append(position.y)
+        if position.team == "t":
+            color_map.append(t_color)
+        else:
+            color_map.append(ct_color)
 
-    plt.scatter(t_x + ct_x,
-                t_y + ct_y,
+    plt.scatter(x_positions,
+                y_positions,
                 s=size,
-                color=t_cmap + ct_cmap,
+                color=color_map,
                 alpha=1,
                 marker='.',
                 linewidths=0)
@@ -72,7 +76,7 @@ def plot_wallbang(wallbang_arg, size):
     plt.plot([x1, x2], [y1, y2], 'k-', color='r', lw=4)
     plt.scatter(x1,
                 y1,
-                s=size*5,
+                s=size*3,
                 marker='.',
                 color="red",
                 alpha=1,
