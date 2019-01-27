@@ -245,7 +245,11 @@ def main():
     debug_log("Parsing {} for {}".format(args.map, args.input), args.verbosity)
     sys.stdout.flush()
 
-    scatter_plot_size = 300
+    scatter_plot_size = 50
+    if args.zoom:
+        _, _, scale = args.zoom.split(',')
+        scatter_plot_size = scatter_plot_size * (100 / float(scale))
+
     radar_data = radardata.get_radar_data(args.map)
 
     zoom_parameters = calculate_zoom_parameters(args.zoom, radar_data.extent)
