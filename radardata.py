@@ -34,7 +34,7 @@ def get_radar_data(mapname):
         # "scale"     "5.2"
         return RadarData(mapname + "_radar.png",
                          make_radar_extent(-4831, 1781, 1024 * 5.2),
-                         [-2300, -1300, -500, 500],
+                         [-3700, 250, -3100, 750],
                          WallBangPos(-1071, -2080, 110.5),
                          2500)
     elif mapname == "de_inferno":

@@ -16,6 +16,7 @@ g_imagecount = 0
 # Named tuples
 FrameRange = collections.namedtuple('FrameRange', 'start stop')
 PositionData = collections.namedtuple('PositionData', 'tick x y team')
+ZoomParameters = collections.namedtuple('ZoomParameters', 'x y zoom')
 
 
 def debug_log(msg, verbosity_level):
@@ -79,10 +80,9 @@ def plot_wallbang(pos, size, length):
                     linewidths=0)
 
 
-def plot_set_properties(image, area, full, extent):
-    # Draw full map instead of zoomed in
-    if not full:
-        plt.axis(area)
+def plot_set_properties(image, zoom, extent):
+    if zoom:
+        plt.axis(zoom)
     plt.imshow(image, extent=extent)
 
 
@@ -174,9 +174,9 @@ def parse_arguments():
     parser.add_argument("--outputdir",
                         default=datetime.datetime.today().strftime('%Y%m%d-%H%M%S'),
                         help="The folder in which to create the output folder")
-    parser.add_argument("--full",
-                        action='store_true',
-                        help="Plot the full map instead of the \"region of interest\"")
+    parser.add_argument("--zoom",
+                        help="Zoom to an area, --zoom \"10,20,30\" means 10%% offset from left, "
+                             "20%% offset from right, 30%% of map visible")
     parser.add_argument("--start",
                         default=4,
                         type=int,
@@ -212,8 +212,25 @@ def parse_arguments():
     return parser.parse_args()
 
 
+def calculate_zoom_parameters(zoom_arg, extent):
+    if zoom_arg:
+        left_offset_percentage, bottom_offset_percentage, area_percentage = zoom_arg.split(',')
+        extent_x1, extent_x2, extent_y1, extent_y2 = extent
+        map_width = extent_x2 - extent_x1
+        left_offset = float(left_offset_percentage) * map_width / 100
+        bottom_offset = float(bottom_offset_percentage) * map_width / 100
+        zoomed_size = map_width * float(area_percentage) / 100
+        new_bottom_x1 = extent_x1 + left_offset
+        new_bottom_x2 = new_bottom_x1 + zoomed_size
+        new_bottom_y1 = extent_y1 + bottom_offset
+        new_bottom_y2 = new_bottom_y1 + zoomed_size
+        return [new_bottom_x1, new_bottom_x2, new_bottom_y1, new_bottom_y2]
+    return None
+
+
 def main():
     args = parse_arguments()
+
     debug_log("Parsing {} for {}".format(args.map, args.input), args.verbosity)
     sys.stdout.flush()
 
@@ -222,6 +239,8 @@ def main():
         scatter_plot_size = 50
 
     radar_data = radardata.get_radar_data(args.map)
+
+    zoom_parameters = calculate_zoom_parameters(args.zoom, radar_data.extent)
 
     tick_range = FrameRange(args.start * 128, args.stop * 128)
     position_data = read_position_data_from_file(args.input, tick_range, args.verbosity)
@@ -246,8 +265,7 @@ def main():
                          dpi=args.dpi)
 
         plot_set_properties(radar_image,
-                            radar_data.plotarea,
-                            args.full,
+                            zoom_parameters,
                             radar_data.extent)
         if not args.notxt:
             plot_text(tick)
