@@ -137,7 +137,7 @@ def read_position_data_from_file(csv_file, tick_range, verbosity):
     rows_read = 0
     position_data = defaultdict(list)
     with open(csv_file) as rawfile:
-        for row in rawfile:
+        for index, row in enumerate(rawfile):
             tick, x, y, team = row.split(',')
             tick, x, y, team = int(tick), float(x), float(y), team.strip('\n')
             if tick >= tick_range.start and tick < tick_range.stop:
@@ -151,19 +151,21 @@ def read_position_data_from_file(csv_file, tick_range, verbosity):
 
 
 def print_progress(tick, tick_range, verbosity, last_tick_timer, step):
-    current_tick = tick - tick_range.start
-    total_ticks = tick_range.stop - tick_range.start
-    time_elapsed = timer() - last_tick_timer
-    time_remaining = ((total_ticks - current_tick) * time_elapsed) / step
+    if last_tick_timer:
+        current_tick = tick - tick_range.start
+        total_ticks = tick_range.stop - tick_range.start
+        time_elapsed = timer() - last_tick_timer
+        time_remaining = ((total_ticks - current_tick) * time_elapsed) / step
 
-    msg = "Processed tick: ({}/{} ~{:.0f}s remaining) {:.2f}s per tick\r"
+        msg = "Processed tick: ({}/{} ~{:.0f}s remaining) {:.2f}s per tick\r"
 
-    debug_verbose(msg.format(current_tick,
-                             total_ticks,
-                             time_remaining,
-                             time_elapsed),
-                  verbosity,
-                  '')
+        debug_verbose(msg.format(current_tick,
+                                 total_ticks,
+                                 time_remaining,
+                                 time_elapsed),
+                      verbosity,
+                      '')
+        sys.stdout.flush()
 
 
 def parse_arguments():
@@ -230,6 +232,13 @@ def calculate_zoom_parameters(zoom_arg, extent):
     return None
 
 
+def positions_iter(position_data, step):
+    for index, (tick, positions) in enumerate(position_data.items()):
+        if index % step != 0:
+            continue
+        yield tick, positions
+
+
 def main():
     args = parse_arguments()
 
@@ -249,15 +258,8 @@ def main():
         radar_image = plt.imread("radar_images/black.png")
 
     tick_timer = None
-    step = 0
-    for tick, positions in position_data.items():
-        if step % args.step != 0:
-            step += 1
-            continue
-        step += 1
-        if tick_timer:
-            print_progress(tick, tick_range, args.verbosity, tick_timer, args.step)
-            sys.stdout.flush()
+    for tick, positions in positions_iter(position_data, args.step):
+        print_progress(tick, tick_range, args.verbosity, tick_timer, args.step)
         tick_timer = timer()
 
         fig = plt.figure(figsize=(1080/args.dpi, 1080/args.dpi),
