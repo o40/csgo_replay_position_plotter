@@ -33,12 +33,12 @@ def create_radar_data_dict():
     '''
     return {
         'de_cache': MapCoordinateData('de_cache', -2000, 3250, 5.5),
-        'de_overpass': MapCoordinateData('de_overpass', -4831, 1781, 5.2)
-        'de_inferno': MapCoordinateData('de_inferno', -2087, 3870, 4.9)
-        'de_dust2': MapCoordinateData('de_dust2', -2476, 3239, 4.4)
-        'de_cbble': MapCoordinateData('de_cbble', -3840, 3072, 6)
-        'de_mirage': MapCoordinateData('de_mirage', -3230, 1713, 5)
-        'de_train': MapCoordinateData('de_train', -2477, 2392, 4.7)
+        'de_overpass': MapCoordinateData('de_overpass', -4831, 1781, 5.2),
+        'de_inferno': MapCoordinateData('de_inferno', -2087, 3870, 4.9),
+        'de_dust2': MapCoordinateData('de_dust2', -2476, 3239, 4.4),
+        'de_cbble': MapCoordinateData('de_cbble', -3840, 3072, 6),
+        'de_mirage': MapCoordinateData('de_mirage', -3230, 1713, 5),
+        'de_train': MapCoordinateData('de_train', -2477, 2392, 4.7),
         'de_nuke': MapCoordinateData('de_nuke', -3453, 2887, 7)
     }
 
