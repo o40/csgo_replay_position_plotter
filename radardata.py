@@ -1,8 +1,3 @@
-import collections
-
-RadarData = collections.namedtuple('RadarData',
-                                   'image extent')
-
 # Example wallbangs
 #  de_cache: 3309,71,-179.6,3900
 #  de_overpass: -1071,-2080,110.5,2500
