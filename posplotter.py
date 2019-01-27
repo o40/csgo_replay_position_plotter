@@ -66,18 +66,17 @@ def plot_player_positions(positions, size, noimg):
                 linewidths=0)
 
 
-def plot_wallbang(pos, size, length):
-    if pos is not None:
-        x1, y1, ang = pos
-        x2, y2 = get_line_end_point(x1, y1, ang, length)
-        plt.plot([x1, x2], [y1, y2], 'k-', color='r', lw=4)
-        plt.scatter(x1,
-                    y1,
-                    s=size*5,
-                    marker='.',
-                    color="red",
-                    alpha=1,
-                    linewidths=0)
+def plot_wallbang(wallbang_arg, size):
+    x1, y1, ang, length = [float(x) for x in wallbang_arg.split(',')]
+    x2, y2 = get_line_end_point(x1, y1, ang, length)
+    plt.plot([x1, x2], [y1, y2], 'k-', color='r', lw=4)
+    plt.scatter(x1,
+                y1,
+                s=size*5,
+                marker='.',
+                color="red",
+                alpha=1,
+                linewidths=0)
 
 
 def plot_set_properties(image, zoom, extent):
@@ -207,8 +206,7 @@ def parse_arguments():
                         type=int,
                         help="Script text output verbosity")
     parser.add_argument("--wallbang",
-                        action='store_true',
-                        help="Draw wallbang line")
+                        help="Draw wallbang line. Format: --wallbang=\"3309,71,-179.6,3900\" (\"x,y,ang,line_length\")")
     return parser.parse_args()
 
 
@@ -235,9 +233,6 @@ def main():
     sys.stdout.flush()
 
     scatter_plot_size = 300
-    if args.full:
-        scatter_plot_size = 50
-
     radar_data = radardata.get_radar_data(args.map)
 
     zoom_parameters = calculate_zoom_parameters(args.zoom, radar_data.extent)
@@ -272,9 +267,8 @@ def main():
         plot_player_positions(positions, scatter_plot_size, args.noimg)
 
         if args.wallbang:
-            plot_wallbang(radar_data.bangpos,
-                          scatter_plot_size,
-                          radar_data.banglength)
+            plot_wallbang(args.wallbang,
+                          scatter_plot_size)
 
         save_figure(args.outputdir, "plots")
 
