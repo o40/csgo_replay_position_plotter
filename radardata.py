@@ -6,10 +6,7 @@
 def make_radar_extent(pos_x, pos_y, size):
     '''
     X, Y is the top left of the radar image (see radar config)
-    size is the size of the radar. I have not figured out
-    how to read the scale value in the radar config.
-
-    See: ..csgo/resource/overviews/de_cache.txt
+    size is the size of the radar.
     '''
     return [pos_x, pos_x + size, pos_y - size, pos_y]
 
@@ -23,7 +20,7 @@ class MapCoordinateData(object):
 
     @property
     def extent(self):
-        return make_radar_extent(self.x, self.y, 1025 * self.scale)
+        return make_radar_extent(self.x, self.y, 1024 * self.scale)
 
     @property
     def radar_file_name(self):
@@ -31,6 +28,9 @@ class MapCoordinateData(object):
 
 
 def create_radar_data_dict():
+    '''
+    These values can be found in ..csgo/resource/overviews/de_*.txt
+    '''
     return {
         'de_cache': MapCoordinateData('de_cache', -2000, 3250, 5.5),
         'de_overpass': MapCoordinateData('de_overpass', -4831, 1781, 5.2)
