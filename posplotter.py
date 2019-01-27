@@ -240,7 +240,7 @@ def main():
     tick_range = FrameRange(args.start * 128, args.stop * 128)
     position_data = read_position_data_from_file(args.input, tick_range, args.verbosity)
 
-    radar_image = plt.imread("radar_images/" + radar_data.image)
+    radar_image = plt.imread("radar_images/" + radar_data.radar_file_name)
     if args.noimg:
         radar_image = plt.imread("radar_images/black.png")
 
