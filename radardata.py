@@ -39,7 +39,10 @@ def create_radar_data_dict():
         'de_cbble': MapCoordinateData('de_cbble', -3840, 3072, 6),
         'de_mirage': MapCoordinateData('de_mirage', -3230, 1713, 5),
         'de_train': MapCoordinateData('de_train', -2477, 2392, 4.7),
-        'de_nuke': MapCoordinateData('de_nuke', -3453, 2887, 7)
+        'de_nuke': MapCoordinateData('de_nuke', -3453, 2887, 7),
+        'de_abbey': MapCoordinateData('de_abbey', -6204, 5111, 6.5),
+        'de_vertigo': MapCoordinateData('de_vertigo', -3168, 1762, 4.0),
+        'de_ancient': MapCoordinateData('de_ancient', -2953, 2164, 5.0)
     }
 
 
