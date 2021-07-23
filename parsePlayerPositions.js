@@ -24,12 +24,18 @@ function print_positions(teams, round, tick, team_index)
   }
 
   let members = teams[team_index].members;
-  for (let i = 0; i < members.length; i++) {
-    if(typeof members[i] !== "undefined") {
+  let numMembers = members.length;
+  for (let i = 0; i < numMembers; i++) {
+    if(members[i] != null) {
       let pos = members[i].position;
       let userid = members[i].userId;
       console.log("%d,%d,%f,%f,%d,%s",
         tick, round, pos.x, pos.y, userid, team_id);
+    }
+    else
+    {
+      console.error("Missing data for member!!!");
+      process.exit(1);
     }
   }
 }
