@@ -1,13 +1,18 @@
 from collections import defaultdict
 from timeit import default_timer as timer
+from pathlib import Path
 import argparse
 import collections
 import datetime
 import math
-import matplotlib.pylab as plt
+
 import os
 import radardata
 import sys
+
+import plotly.graph_objects as go
+import os
+import base64
 
 
 # Globals
@@ -44,88 +49,51 @@ def tickToRoundTime(tick):
     return secondsLeftInRound
 
 
-def plot_player_positions(positions, size, noimg):
+def _plot_player_positions(fig, positions, noimg):
     # Colors
     t_color = "orange"
     ct_color = "lime"
     if noimg:
         ct_color = "royalblue"
 
-    # Create lists suitable for scatterplot
-    x_positions, y_positions, color_map = [], [], []
-    for position in positions:
-        x_positions.append(position.x)
-        y_positions.append(position.y)
-        if position.team == "t":
-            color_map.append(t_color)
-        else:
-            color_map.append(ct_color)
 
-    plt.scatter(x_positions,
-                y_positions,
-                s=size,
-                color=color_map,
-                alpha=1,
-                marker='.',
-                linewidths=0)
+    positions_t = [p for p in positions if p.team == "t"]
+    positions_ct = [p for p in positions if p.team == "ct"]
+
+    fig.add_trace(
+        go.Scatter(x=[p.x for p in positions_t], y=[p.y for p in positions_t], marker = {'color' : t_color}, showlegend=False, mode='markers')
+    )
+
+    fig.add_trace(
+        go.Scatter(x=[p.x for p in positions_ct], y=[p.y for p in positions_ct], marker = {'color' : ct_color}, showlegend=False, mode='markers')
+    )
 
 
-def plot_wallbang(wallbang_arg, size):
-    x1, y1, ang, length = [float(x) for x in wallbang_arg.split(',')]
-    x2, y2 = get_line_end_point(x1, y1, ang, length)
-    plt.plot([x1, x2], [y1, y2], 'k-', color='r', lw=4)
-    plt.scatter(x1,
-                y1,
-                s=size*3,
-                marker='.',
-                color="red",
-                alpha=1,
-                linewidths=0)
-
-
-def plot_set_properties(image, zoom, extent):
-    if zoom:
-        plt.axis(zoom)
-    plt.imshow(image, extent=extent)
-
-
-def plot_text(tick):
-    font = {'family': 'arial',
-            'color':  'yellow',
-            'weight': 'bold',
-            'size': 32}
-
+def _plot_text(fig, tick):
     title = "1:{}".format(str(tickToRoundTime(tick) - 60))
+    fig.add_annotation(text=title,
+           xref="paper", yref="paper",
+           align="left",
+           x=0.02, y=0.98,
+           showarrow=False,
+           opacity=1,
+           font=dict(
+                family="Courier New, monospace",
+                size=32,
+                color="#ffffff"))
 
-    plt.text(0.25, 0.98, title,
-             fontdict=font,
-             transform=plt.gca().transAxes,
-             ha='center',
-             va='top',
-             bbox=dict(alpha=1,
-                       boxstyle="round",
-                       ec='black',
-                       fc='black',
-                       lw=0.2))
 
-
-def save_figure(date, folder):
+def _save_figure(fig, date, folder):
     global g_imagecount
     directory = "{}/{}".format(folder, date)
     if not os.path.exists(directory):
         os.makedirs(directory)
     filename = "{}/{}/{}.png".format(folder, date, str(g_imagecount).zfill(5))
-    extent = plt.gca().get_window_extent().transformed(plt.gcf().dpi_scale_trans.inverted())
-
-    plt.axis('off')
-    plt.margins(0, 0)
-    plt.savefig(filename,
-                bbox_inches='tight',
-                pad_inches=0)
+    fig.write_image(filename)
     g_imagecount += 1
 
 
-def read_position_data_from_file(csv_file, tick_range, verbosity):
+def _read_position_data_from_file(csv_file, tick_range, verbosity):
     '''
     Position data is stored in ticks of increasing order so
     there is no need to sort the keys in the dict.
@@ -146,7 +114,7 @@ def read_position_data_from_file(csv_file, tick_range, verbosity):
     return position_data
 
 
-def print_progress(tick, tick_range, verbosity, last_tick_timer, step):
+def _print_progress(tick, tick_range, verbosity, last_tick_timer, step):
     if last_tick_timer:
         current_tick = tick - tick_range.start
         total_ticks = tick_range.stop - tick_range.start
@@ -164,7 +132,7 @@ def print_progress(tick, tick_range, verbosity, last_tick_timer, step):
         sys.stdout.flush()
 
 
-def parse_arguments():
+def _parse_arguments():
     parser = argparse.ArgumentParser(description='Plot player positions')
     parser.add_argument("--map",
                         required=True,
@@ -207,82 +175,75 @@ def parse_arguments():
                         default=1,
                         type=int,
                         help="Script text output verbosity")
-    parser.add_argument("--wallbang",
-                        help="Draw wallbang line. Format: --wallbang=\"3309,71,-179.6,3900\" (\"x,y,ang,line_length\")")
     return parser.parse_args()
 
 
-def calculate_zoom_parameters(zoom_arg, extent):
-    if zoom_arg:
-        left_offset_percentage, bottom_offset_percentage, area_percentage = zoom_arg.split(',')
-        extent_x1, extent_x2, extent_y1, extent_y2 = extent
-        map_width = extent_x2 - extent_x1
-        left_offset = float(left_offset_percentage) * map_width / 100
-        bottom_offset = float(bottom_offset_percentage) * map_width / 100
-        zoomed_size = map_width * float(area_percentage) / 100
-        new_bottom_x1 = extent_x1 + left_offset
-        new_bottom_x2 = new_bottom_x1 + zoomed_size
-        new_bottom_y1 = extent_y1 + bottom_offset
-        new_bottom_y2 = new_bottom_y1 + zoomed_size
-        return [new_bottom_x1, new_bottom_x2, new_bottom_y1, new_bottom_y2]
-    return None
-
-
-def positions_iter(position_data, step):
+def _positions_iter(position_data, step):
     for index, (tick, positions) in enumerate(position_data.items()):
         if index % step != 0:
             continue
         yield tick, positions
 
+def _get_encoded_radar_image(radar_data):
+    with Path("radar_images/" + radar_data.radar_file_name).open("rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode()
+    return "data:image/png;base64," + encoded_string
+
+def _add_radar_image_to_plot(fig, radar_image, radar_data):
+    size = radar_data.scale * 1024
+    fig.add_layout_image(
+                dict(
+                    source=radar_image,
+                    xref="x",
+                    yref="y",
+                    x=radar_data.x,
+                    y=radar_data.y,
+                    sizex=size,
+                    sizey=size,
+                    sizing="stretch",
+                    opacity=1,
+                    layer="below")
+    )
+
+def _update_figure_layout(fig, extent):
+    x1, x2, y1, y2 = extent
+    fig.update_layout(template="simple_white")
+    fig.update_xaxes(range=[x1, x2], visible=False)
+    fig.update_yaxes(range=[y1, y2], visible=False)
+    fig.update_layout(width = 1024,height = 1024)
+
 
 def main():
-    args = parse_arguments()
+    global g_imagecount
+    args = _parse_arguments()
 
     debug_log("Parsing {} for {}".format(args.map, args.input), args.verbosity)
     sys.stdout.flush()
 
-    scatter_plot_size = 50
-    if args.zoom:
-        _, _, scale = args.zoom.split(',')
-        scatter_plot_size = scatter_plot_size * (100 / float(scale))
-
     radar_data = radardata.get_radar_data(args.map)
-
-    zoom_parameters = calculate_zoom_parameters(args.zoom, radar_data.extent)
-
     tick_range = FrameRange(args.start * 128, args.stop * 128)
-    position_data = read_position_data_from_file(args.input, tick_range, args.verbosity)
+    position_data = _read_position_data_from_file(args.input, tick_range, args.verbosity)
 
-    radar_image = plt.imread("radar_images/" + radar_data.radar_file_name)
-    if args.noimg:
-        radar_image = plt.imread("radar_images/black.png")
+    radar_image = _get_encoded_radar_image(radar_data)
 
     tick_timer = None
-    for tick, positions in positions_iter(position_data, args.step):
-        print_progress(tick, tick_range, args.verbosity, tick_timer, args.step)
+    for tick, positions in _positions_iter(position_data, args.step):
+        _print_progress(tick, tick_range, args.verbosity, tick_timer, args.step)
         tick_timer = timer()
 
-        fig = plt.figure(figsize=(1080/args.dpi, 1080/args.dpi),
-                         dpi=args.dpi)
+        fig = go.Figure()
 
-        plot_set_properties(radar_image,
-                            zoom_parameters,
-                            radar_data.extent)
         if not args.notxt:
-            plot_text(tick)
-        plot_player_positions(positions, scatter_plot_size, args.noimg)
+            _plot_text(fig, tick)
 
-        if args.wallbang:
-            plot_wallbang(args.wallbang,
-                          scatter_plot_size)
-
-        save_figure(args.outputdir, "plots")
+        _plot_player_positions(fig, positions, args.noimg)
+        _add_radar_image_to_plot(fig, radar_image, radar_data)
+        _update_figure_layout(fig, radar_data.extent)
+        _save_figure(fig, args.outputdir, "plots")
 
         # Test plotter by only saving the first image
         if args.test:
             exit()
-
-        plt.close(fig)
 
 
 if __name__ == "__main__":
